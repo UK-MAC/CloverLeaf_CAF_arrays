@@ -82,7 +82,9 @@ MODULE data_module
                                ,boss
       INTEGER         ::        max_task &
                                ,task     &
-                               ,boss_task
+                               ,boss_task&
+                               ,image    &
+                               ,max_image
 
    END TYPE parallel_type
    

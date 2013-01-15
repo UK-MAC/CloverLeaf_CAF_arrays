@@ -33,7 +33,6 @@ MODULE clover_module
 
   USE data_module
   USE definitions_module
-  USE MPI
 
   IMPLICIT NONE
 
@@ -41,17 +40,13 @@ CONTAINS
 
 SUBROUTINE clover_barrier
 
-  INTEGER :: err
-
-  CALL MPI_BARRIER(MPI_COMM_WORLD,err)
+    sync all
 
 END SUBROUTINE clover_barrier
 
 SUBROUTINE clover_abort
 
-  INTEGER :: ierr,err
-
-  CALL MPI_ABORT(MPI_COMM_WORLD,ierr,err)
+    ERROR STOP
 
 END SUBROUTINE clover_abort
 
@@ -63,7 +58,6 @@ SUBROUTINE clover_finalize
   CALL FLUSH(0)
   CALL FLUSH(6)
   CALL FLUSH(g_out)
-  CALL MPI_FINALIZE(err)
 
 END SUBROUTINE clover_finalize
 
@@ -71,25 +65,19 @@ SUBROUTINE clover_init_comms
 
   IMPLICIT NONE
 
-  INTEGER :: err,rank,size
-
-  rank=0
-  size=1
-
-  CALL MPI_INIT(err) 
-
-  CALL MPI_COMM_RANK(MPI_COMM_WORLD,rank,err) 
-  CALL MPI_COMM_SIZE(MPI_COMM_WORLD,size,err) 
-
   parallel%parallel=.TRUE.
-  parallel%task=rank
 
-  IF(rank.EQ.0) THEN
+  parallel%image = this_image()
+  parallel%max_image = num_images()
+
+  parallel%task = parallel%image - 1
+
+  IF(parallel%image.EQ.1) THEN
     parallel%boss=.TRUE.
   ENDIF
 
   parallel%boss_task=0
-  parallel%max_task=size
+  parallel%max_task=parallel%max_image
 
 END SUBROUTINE clover_init_comms
 
@@ -609,11 +597,9 @@ SUBROUTINE clover_sum(value)
 
   REAL(KIND=8) :: total
 
-  INTEGER :: err
-
   total=value
 
-  CALL MPI_REDUCE(value,total,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,err)
+  CALL CO_SUM(value, total, result_image=1)
 
   value=total
 
@@ -627,11 +613,9 @@ SUBROUTINE clover_min(value)
 
   REAL(KIND=8) :: minimum
 
-  INTEGER :: err
-
   minimum=value
 
-  CALL MPI_ALLREDUCE(value,minimum,1,MPI_DOUBLE_PRECISION,MPI_MIN,MPI_COMM_WORLD,err)
+  CALL CO_MIN(value, minimum)
 
   value=minimum
 
@@ -645,11 +629,9 @@ SUBROUTINE clover_check_error(error)
 
   INTEGER :: maximum
 
-  INTEGER :: err
-
   maximum=error
 
-  CALL MPI_ALLREDUCE(error,maximum,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,err)
+  CALL CO_MAX(error, maximum)
 
   error=maximum
 
