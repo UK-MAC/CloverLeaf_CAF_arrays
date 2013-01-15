@@ -232,372 +232,658 @@ SUBROUTINE clover_exchange(fields,depth)
   IMPLICIT NONE
 
   INTEGER      :: fields(:),depth
+  INTEGER      :: chunk, left_neighbour, right_neighbour, top_neighbour, bottom_neighbour, xinc, yinc
+
+  ! Assuming 1 patch per task, this will be changed
+  ! Also, not packing all fields for each communication, doing one at a time
+
+  ! the chunk number which the executing task is responsible for
+  chunk = parallel%task+1
+
+  left_neighbour = chunks(chunk)%chunk_neighbours(chunk_left)
+  right_neighbour = chunks(chunk)%chunk_neighbours(chunk_right)
+  bottom_neighbour = chunks(chunk)%chunk_neighbours(chunk_bottom)
+  top_neighbour = chunks(chunk)%chunk_neighbours(chunk_top)
+
+  !caf: syncronise all processes here to ensure that all have finished the previous phase and there the halo exchange can begin
+  sync all
 
   ! Assuming 1 patch per task, this will be changed
   ! Also, not packing all fields for each communication, doing one at a time
 
   IF(fields(FIELD_DENSITY0).EQ.1) THEN
-    CALL clover_exchange_message(parallel%task+1,chunks(parallel%task+1)%field%density0,      &
-                                 chunks(parallel%task+1)%left_snd_buffer,                      &
-                                 chunks(parallel%task+1)%left_rcv_buffer,                      &
-                                 chunks(parallel%task+1)%right_snd_buffer,                     &
-                                 chunks(parallel%task+1)%right_rcv_buffer,                     &
-                                 chunks(parallel%task+1)%bottom_snd_buffer,                    &
-                                 chunks(parallel%task+1)%bottom_rcv_buffer,                    &
-                                 chunks(parallel%task+1)%top_snd_buffer,                       &
-                                 chunks(parallel%task+1)%top_rcv_buffer,                       &
-                                 depth,CELL_DATA)
+    xinc = 0    yinc = 0
+
+    IF(left_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the left of the current image
+      chunks(left_neighbour)[left_neighbour]%field%density0(                                                 &
+               chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,      &
+               chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth ) =    &
+         chunks(chunk)%field%density0(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                      chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+    IF(right_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the right of the current image
+      chunks(right_neighbour)[right_neighbour]%field%density0(                                              &
+              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,              &
+              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =   &
+          chunks(chunk)%field%density0(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,         &
+                                       chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+
+    ! caf: can be replaced with a sync with just the neighbours
+    sync all
+
+    IF(bottom_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(bottom_neighbour)[bottom_neighbour]%field%density0(                                             &
+              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
+              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+         chunks(chunk)%field%density0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                      chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+    ENDIF
+    IF(top_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(top_neighbour)[top_neighbour]%field%density0(                                                  &
+              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,         &
+              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                &
+         chunks(chunk)%field%density0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                      chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+    ENDIF
   ENDIF
 
   IF(fields(FIELD_DENSITY1).EQ.1) THEN
-    CALL clover_exchange_message(parallel%task+1,chunks(parallel%task+1)%field%density1,      &
-                                 chunks(parallel%task+1)%left_snd_buffer,                      &
-                                 chunks(parallel%task+1)%left_rcv_buffer,                      &
-                                 chunks(parallel%task+1)%right_snd_buffer,                     &
-                                 chunks(parallel%task+1)%right_rcv_buffer,                     &
-                                 chunks(parallel%task+1)%bottom_snd_buffer,                    &
-                                 chunks(parallel%task+1)%bottom_rcv_buffer,                    &
-                                 chunks(parallel%task+1)%top_snd_buffer,                       &
-                                 chunks(parallel%task+1)%top_rcv_buffer,                       &
-                                 depth,CELL_DATA)
+    xinc = 0
+    yinc = 0
+
+    IF(left_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the left of the current image
+      chunks(left_neighbour)[left_neighbour]%field%density1(                                                 &
+              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,       &
+              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =      &
+         chunks(chunk)%field%density1(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                      chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+    IF(right_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the right of the current image
+      chunks(right_neighbour)[right_neighbour]%field%density1(                                              &
+              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,              &
+              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =   &
+         chunks(chunk)%field%density1(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                      chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+
+    ! caf: can be replaced with a sync with just the neighbours
+    sync all
+
+    IF(bottom_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(bottom_neighbour)[bottom_neighbour]%field%density1(                                             &
+              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
+              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+         chunks(chunk)%field%density1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                      chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+    ENDIF
+    IF(top_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(top_neighbour)[top_neighbour]%field%density1(                                                  &
+              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,         &
+              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                &
+         chunks(chunk)%field%density1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                      chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+    ENDIF
   ENDIF
 
   IF(fields(FIELD_ENERGY0).EQ.1) THEN
-    CALL clover_exchange_message(parallel%task+1,chunks(parallel%task+1)%field%energy0,       &
-                                 chunks(parallel%task+1)%left_snd_buffer,                      &
-                                 chunks(parallel%task+1)%left_rcv_buffer,                      &
-                                 chunks(parallel%task+1)%right_snd_buffer,                     &
-                                 chunks(parallel%task+1)%right_rcv_buffer,                     &
-                                 chunks(parallel%task+1)%bottom_snd_buffer,                    &
-                                 chunks(parallel%task+1)%bottom_rcv_buffer,                    &
-                                 chunks(parallel%task+1)%top_snd_buffer,                       &
-                                 chunks(parallel%task+1)%top_rcv_buffer,                       &
-                                 depth,CELL_DATA)
+    xinc = 0
+    yinc = 0
+
+    IF(left_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the left of the current image
+      chunks(left_neighbour)[left_neighbour]%field%energy0(                                                 &
+              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,      &
+              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =     &
+         chunks(chunk)%field%energy0(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                     chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+    IF(right_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the right of the current image
+      chunks(right_neighbour)[right_neighbour]%field%energy0(                                              &
+              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,             &
+              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =  &
+         chunks(chunk)%field%energy0(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                     chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+
+    ! caf: can be replaced with a sync with just the neighbours
+    sync all
+
+    IF(bottom_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(bottom_neighbour)[bottom_neighbour]%field%energy0(                                              &
+              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
+              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+         chunks(chunk)%field%energy0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,   &
+                                     chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+    ENDIF
+    IF(top_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(top_neighbour)[top_neighbour]%field%energy0(                                                  &
+              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,        &
+              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =               &
+         chunks(chunk)%field%energy0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                     chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+    ENDIF
   ENDIF
 
   IF(fields(FIELD_ENERGY1).EQ.1) THEN
-    CALL clover_exchange_message(parallel%task+1,chunks(parallel%task+1)%field%energy1,       &
-                                 chunks(parallel%task+1)%left_snd_buffer,                      &
-                                 chunks(parallel%task+1)%left_rcv_buffer,                      &
-                                 chunks(parallel%task+1)%right_snd_buffer,                     &
-                                 chunks(parallel%task+1)%right_rcv_buffer,                     &
-                                 chunks(parallel%task+1)%bottom_snd_buffer,                    &
-                                 chunks(parallel%task+1)%bottom_rcv_buffer,                    &
-                                 chunks(parallel%task+1)%top_snd_buffer,                       &
-                                 chunks(parallel%task+1)%top_rcv_buffer,                       &
-                                 depth,CELL_DATA)
+    xinc = 0
+    yinc = 0
+
+    IF(left_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the left of the current image
+      chunks(left_neighbour)[left_neighbour]%field%energy1(                                                 &
+              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,      &
+              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =     &
+         chunks(chunk)%field%energy1(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                     chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+    IF(right_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the right of the current image
+      chunks(right_neighbour)[right_neighbour]%field%energy1(                                              &
+              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,             &
+              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =  &
+         chunks(chunk)%field%energy1(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                     chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+
+    ! caf: can be replaced with a sync with just the neighbours
+    sync all
+
+    IF(bottom_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(bottom_neighbour)[bottom_neighbour]%field%energy1(                                              &
+              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
+              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+         chunks(chunk)%field%energy1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,   &
+                                     chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+    ENDIF
+    IF(top_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(top_neighbour)[top_neighbour]%field%energy1(                                                  &
+               chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,       &
+               chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =              &
+         chunks(chunk)%field%energy1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                     chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+    ENDIF
   ENDIF
 
   IF(fields(FIELD_PRESSURE).EQ.1) THEN
-    CALL clover_exchange_message(parallel%task+1,chunks(parallel%task+1)%field%pressure,      &
-                                 chunks(parallel%task+1)%left_snd_buffer,                      &
-                                 chunks(parallel%task+1)%left_rcv_buffer,                      &
-                                 chunks(parallel%task+1)%right_snd_buffer,                     &
-                                 chunks(parallel%task+1)%right_rcv_buffer,                     &
-                                 chunks(parallel%task+1)%bottom_snd_buffer,                    &
-                                 chunks(parallel%task+1)%bottom_rcv_buffer,                    &
-                                 chunks(parallel%task+1)%top_snd_buffer,                       &
-                                 chunks(parallel%task+1)%top_rcv_buffer,                       &
-                                 depth,CELL_DATA)
+    xinc = 0
+    yinc = 0
+
+    IF(left_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the left of the current image
+      chunks(left_neighbour)[left_neighbour]%field%pressure(                                                 &
+              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,       &
+              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =      &
+         chunks(chunk)%field%pressure(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                      chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+    IF(right_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the right of the current image
+      chunks(right_neighbour)[right_neighbour]%field%pressure(                                              &
+              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,              &
+              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =   &
+         chunks(chunk)%field%pressure(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                      chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+
+    ! caf: can be replaced with a sync with just the neighbours
+    sync all
+
+    IF(bottom_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(bottom_neighbour)[bottom_neighbour]%field%pressure(                                             &
+              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
+              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+         chunks(chunk)%field%pressure(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                      chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+    ENDIF
+    IF(top_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(top_neighbour)[top_neighbour]%field%pressure(                                                  &
+              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,         &
+              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                &
+         chunks(chunk)%field%pressure(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                      chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+    ENDIF
   ENDIF
 
   IF(fields(FIELD_VISCOSITY).EQ.1) THEN
-    CALL clover_exchange_message(parallel%task+1,chunks(parallel%task+1)%field%viscosity,     &
-                                 chunks(parallel%task+1)%left_snd_buffer,                      &
-                                 chunks(parallel%task+1)%left_rcv_buffer,                      &
-                                 chunks(parallel%task+1)%right_snd_buffer,                     &
-                                 chunks(parallel%task+1)%right_rcv_buffer,                     &
-                                 chunks(parallel%task+1)%bottom_snd_buffer,                    &
-                                 chunks(parallel%task+1)%bottom_rcv_buffer,                    &
-                                 chunks(parallel%task+1)%top_snd_buffer,                       &
-                                 chunks(parallel%task+1)%top_rcv_buffer,                       &
-                                 depth,CELL_DATA)
+    xinc = 0
+    yinc = 0
+
+    IF(left_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the left of the current image
+      chunks(left_neighbour)[left_neighbour]%field%viscosity(                                                 &
+              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,        &
+              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =       &
+         chunks(chunk)%field%viscosity(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                       chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+    IF(right_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the right of the current image
+      chunks(right_neighbour)[right_neighbour]%field%viscosity(                                              &
+              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,               &
+              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =    &
+         chunks(chunk)%field%viscosity(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                       chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+
+    ! caf: can be replaced with a sync with just the neighbours
+    sync all
+
+    IF(bottom_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(bottom_neighbour)[bottom_neighbour]%field%viscosity(                                             &
+              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,     &
+              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =  &
+         chunks(chunk)%field%viscosity(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                       chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+    ENDIF
+    IF(top_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(top_neighbour)[top_neighbour]%field%viscosity(                                                   &
+              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,           &
+              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                  &
+         chunks(chunk)%field%viscosity(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                       chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+    ENDIF
   ENDIF
 
   IF(fields(FIELD_SOUNDSPEED).EQ.1) THEN
-    CALL clover_exchange_message(parallel%task+1,chunks(parallel%task+1)%field%soundspeed,    &
-                                 chunks(parallel%task+1)%left_snd_buffer,                      &
-                                 chunks(parallel%task+1)%left_rcv_buffer,                      &
-                                 chunks(parallel%task+1)%right_snd_buffer,                     &
-                                 chunks(parallel%task+1)%right_rcv_buffer,                     &
-                                 chunks(parallel%task+1)%bottom_snd_buffer,                    &
-                                 chunks(parallel%task+1)%bottom_rcv_buffer,                    &
-                                 chunks(parallel%task+1)%top_snd_buffer,                       &
-                                 chunks(parallel%task+1)%top_rcv_buffer,                       &
-                                 depth,CELL_DATA)
+    xinc = 0
+    yinc = 0
+
+    IF(left_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the left of the current image
+      chunks(left_neighbour)[left_neighbour]%field%soundspeed(                                                 &
+              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,         &
+              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =        &
+         chunks(chunk)%field%soundspeed(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+    IF(right_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the right of the current image
+      chunks(right_neighbour)[right_neighbour]%field%soundspeed(                                              &
+              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                &
+              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =     &
+         chunks(chunk)%field%soundspeed(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+
+    ! caf: can be replaced with a sync with just the neighbours
+    sync all
+
+    IF(bottom_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(bottom_neighbour)[bottom_neighbour]%field%soundspeed(                                             &
+              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,      &
+              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =   &
+         chunks(chunk)%field%soundspeed(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                        chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+    ENDIF
+    IF(top_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(top_neighbour)[top_neighbour]%field%soundspeed(                                                   &
+              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,            &
+              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                   &
+         chunks(chunk)%field%soundspeed(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                        chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+    ENDIF
   ENDIF
 
   IF(fields(FIELD_XVEL0).EQ.1) THEN
-    CALL clover_exchange_message(parallel%task+1,chunks(parallel%task+1)%field%xvel0,         &
-                                 chunks(parallel%task+1)%left_snd_buffer,                      &
-                                 chunks(parallel%task+1)%left_rcv_buffer,                      &
-                                 chunks(parallel%task+1)%right_snd_buffer,                     &
-                                 chunks(parallel%task+1)%right_rcv_buffer,                     &
-                                 chunks(parallel%task+1)%bottom_snd_buffer,                    &
-                                 chunks(parallel%task+1)%bottom_rcv_buffer,                    &
-                                 chunks(parallel%task+1)%top_snd_buffer,                       &
-                                 chunks(parallel%task+1)%top_rcv_buffer,                       &
-                                 depth,VERTEX_DATA)
+    xinc = 1
+    yinc = 1
+
+    IF(left_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the left of the current image
+      chunks(left_neighbour)[left_neighbour]%field%xvel0(                                                 &
+              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,    &
+              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =   &
+         chunks(chunk)%field%xvel0(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                   chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+    IF(right_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the right of the current image
+      chunks(right_neighbour)[right_neighbour]%field%xvel0(                                               &
+              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,            &
+              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) = &
+         chunks(chunk)%field%xvel0(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,           &
+                                   chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+
+    ! caf: can be replaced with a sync with just the neighbours
+    sync all
+
+    IF(bottom_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(bottom_neighbour)[bottom_neighbour]%field%xvel0(                                                &
+              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
+              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+         chunks(chunk)%field%xvel0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,     &
+                                   chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+    ENDIF
+    IF(top_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(top_neighbour)[top_neighbour]%field%xvel0(                                                  &
+              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,      &
+              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =             &
+         chunks(chunk)%field%xvel0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                   chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+    ENDIF
   ENDIF
 
   IF(fields(FIELD_XVEL1).EQ.1) THEN
-    CALL clover_exchange_message(parallel%task+1,chunks(parallel%task+1)%field%xvel1,         &
-                                 chunks(parallel%task+1)%left_snd_buffer,                      &
-                                 chunks(parallel%task+1)%left_rcv_buffer,                      &
-                                 chunks(parallel%task+1)%right_snd_buffer,                     &
-                                 chunks(parallel%task+1)%right_rcv_buffer,                     &
-                                 chunks(parallel%task+1)%bottom_snd_buffer,                    &
-                                 chunks(parallel%task+1)%bottom_rcv_buffer,                    &
-                                 chunks(parallel%task+1)%top_snd_buffer,                       &
-                                 chunks(parallel%task+1)%top_rcv_buffer,                       &
-                                 depth,VERTEX_DATA)
+    xinc = 1
+    yinc = 1
+
+    IF(left_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the left of the current image
+      chunks(left_neighbour)[left_neighbour]%field%xvel1(                                                 &
+              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,    &
+              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =   &
+         chunks(chunk)%field%xvel1(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                   chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+    IF(right_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the right of the current image
+      chunks(right_neighbour)[right_neighbour]%field%xvel1(                                               &
+              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,            &
+              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) = &
+         chunks(chunk)%field%xvel1(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,           &
+                                   chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+
+    ! caf: can be replaced with a sync with just the neighbours
+    sync all
+
+    IF(bottom_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(bottom_neighbour)[bottom_neighbour]%field%xvel1(                                                &
+              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
+              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+         chunks(chunk)%field%xvel1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,     &
+                                   chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+    ENDIF
+    IF(top_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(top_neighbour)[top_neighbour]%field%xvel1(                                                  &
+              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,      &
+              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =             &
+         chunks(chunk)%field%xvel1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                   chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+    ENDIF
   ENDIF
 
   IF(fields(FIELD_YVEL0).EQ.1) THEN
-    CALL clover_exchange_message(parallel%task+1,chunks(parallel%task+1)%field%yvel0,         &
-                                 chunks(parallel%task+1)%left_snd_buffer,                      &
-                                 chunks(parallel%task+1)%left_rcv_buffer,                      &
-                                 chunks(parallel%task+1)%right_snd_buffer,                     &
-                                 chunks(parallel%task+1)%right_rcv_buffer,                     &
-                                 chunks(parallel%task+1)%bottom_snd_buffer,                    &
-                                 chunks(parallel%task+1)%bottom_rcv_buffer,                    &
-                                 chunks(parallel%task+1)%top_snd_buffer,                       &
-                                 chunks(parallel%task+1)%top_rcv_buffer,                       &
-                                 depth,VERTEX_DATA)
+    xinc = 1
+    yinc = 1
+
+    IF(left_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the left of the current image
+      chunks(left_neighbour)[left_neighbour]%field%yvel0(                                                 &
+              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,    &
+              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =   &
+         chunks(chunk)%field%yvel0(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                   chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+    IF(right_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the right of the current image
+      chunks(right_neighbour)[right_neighbour]%field%yvel0(                                               &
+              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,            &
+              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) = &
+         chunks(chunk)%field%yvel0(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,           &
+                                   chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+
+    ! caf: can be replaced with a sync with just the neighbours
+    sync all
+
+    IF(bottom_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(bottom_neighbour)[bottom_neighbour]%field%yvel0(                                                &
+              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
+              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+         chunks(chunk)%field%yvel0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,     &
+                                   chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+    ENDIF
+    IF(top_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(top_neighbour)[top_neighbour]%field%yvel0(                                                  &
+              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,      &
+              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =             &
+         chunks(chunk)%field%yvel0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                   chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+    ENDIF
   ENDIF
 
   IF(fields(FIELD_YVEL1).EQ.1) THEN
-    CALL clover_exchange_message(parallel%task+1,chunks(parallel%task+1)%field%yvel1,         &
-                                 chunks(parallel%task+1)%left_snd_buffer,                      &
-                                 chunks(parallel%task+1)%left_rcv_buffer,                      &
-                                 chunks(parallel%task+1)%right_snd_buffer,                     &
-                                 chunks(parallel%task+1)%right_rcv_buffer,                     &
-                                 chunks(parallel%task+1)%bottom_snd_buffer,                    &
-                                 chunks(parallel%task+1)%bottom_rcv_buffer,                    &
-                                 chunks(parallel%task+1)%top_snd_buffer,                       &
-                                 chunks(parallel%task+1)%top_rcv_buffer,                       &
-                                 depth,VERTEX_DATA)
+    xinc = 1
+    yinc = 1
+
+    IF(left_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the left of the current image
+      chunks(left_neighbour)[left_neighbour]%field%yvel1(                                                 &
+              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,    &
+              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =   &
+         chunks(chunk)%field%yvel1(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                   chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+    IF(right_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the right of the current image
+      chunks(right_neighbour)[right_neighbour]%field%yvel1(                                               &
+              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,            &
+              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) = &
+         chunks(chunk)%field%yvel1(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,           &
+                                   chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+
+    ! caf: can be replaced with a sync with just the neighbours
+    sync all
+
+    IF(bottom_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(bottom_neighbour)[bottom_neighbour]%field%yvel1(                                                &
+              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
+              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+         chunks(chunk)%field%yvel1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,     &
+                                   chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+    ENDIF
+    IF(top_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(top_neighbour)[top_neighbour]%field%yvel1(                                                  &
+              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,      &
+              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =             &
+         chunks(chunk)%field%yvel1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                   chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+    ENDIF
   ENDIF
 
   IF(fields(FIELD_VOL_FLUX_X).EQ.1) THEN
-    CALL clover_exchange_message(parallel%task+1,chunks(parallel%task+1)%field%vol_flux_x,    &
-                                 chunks(parallel%task+1)%left_snd_buffer,                      &
-                                 chunks(parallel%task+1)%left_rcv_buffer,                      &
-                                 chunks(parallel%task+1)%right_snd_buffer,                     &
-                                 chunks(parallel%task+1)%right_rcv_buffer,                     &
-                                 chunks(parallel%task+1)%bottom_snd_buffer,                    &
-                                 chunks(parallel%task+1)%bottom_rcv_buffer,                    &
-                                 chunks(parallel%task+1)%top_snd_buffer,                       &
-                                 chunks(parallel%task+1)%top_rcv_buffer,                       &
-                                 depth,X_FACE_DATA)
+    xinc = 1
+    yinc = 0
+
+    IF(left_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the left of the current image
+      chunks(left_neighbour)[left_neighbour]%field%vol_flux_x(                                                 &
+              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,         &
+              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =        &
+         chunks(chunk)%field%vol_flux_x(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+    IF(right_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the right of the current image
+      chunks(right_neighbour)[right_neighbour]%field%vol_flux_x(                                              &
+              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                &
+              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =     &
+         chunks(chunk)%field%vol_flux_x(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+
+    ! caf: can be replaced with a sync with just the neighbours
+    sync all
+
+    IF(bottom_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(bottom_neighbour)[bottom_neighbour]%field%vol_flux_x(                                             &
+              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,      &
+              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =   &
+         chunks(chunk)%field%vol_flux_x(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                        chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+    ENDIF
+    IF(top_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(top_neighbour)[top_neighbour]%field%vol_flux_x(                                                  &
+              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,           &
+              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                  &
+         chunks(chunk)%field%vol_flux_x(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                        chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+    ENDIF
   ENDIF
 
   IF(fields(FIELD_VOL_FLUX_Y).EQ.1) THEN
-    CALL clover_exchange_message(parallel%task+1,chunks(parallel%task+1)%field%vol_flux_y,    &
-                                 chunks(parallel%task+1)%left_snd_buffer,                      &
-                                 chunks(parallel%task+1)%left_rcv_buffer,                      &
-                                 chunks(parallel%task+1)%right_snd_buffer,                     &
-                                 chunks(parallel%task+1)%right_rcv_buffer,                     &
-                                 chunks(parallel%task+1)%bottom_snd_buffer,                    &
-                                 chunks(parallel%task+1)%bottom_rcv_buffer,                    &
-                                 chunks(parallel%task+1)%top_snd_buffer,                       &
-                                 chunks(parallel%task+1)%top_rcv_buffer,                       &
-                                 depth,Y_FACE_DATA)
+    xinc = 0
+    yinc = 1
+
+    IF(left_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the left of the current image
+      chunks(left_neighbour)[left_neighbour]%field%vol_flux_y(                                                 &
+              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,         &
+              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =        &
+         chunks(chunk)%field%vol_flux_y(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+    IF(right_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the right of the current image
+      chunks(right_neighbour)[right_neighbour]%field%vol_flux_y(                                              &
+              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                &
+              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =     &
+         chunks(chunk)%field%vol_flux_y(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+
+    ! caf: can be replaced with a sync with just the neighbours
+    sync all
+
+    IF(bottom_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(bottom_neighbour)[bottom_neighbour]%field%vol_flux_y(                                             &
+              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,      &
+              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =   &
+         chunks(chunk)%field%vol_flux_y(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                        chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+    ENDIF
+    IF(top_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(top_neighbour)[top_neighbour]%field%vol_flux_y(                                                  &
+              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,           &
+              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                  &
+         chunks(chunk)%field%vol_flux_y(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                        chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+    ENDIF
   ENDIF
 
   IF(fields(FIELD_MASS_FLUX_X).EQ.1) THEN
-    CALL clover_exchange_message(parallel%task+1,chunks(parallel%task+1)%field%mass_flux_x,   &
-                                 chunks(parallel%task+1)%left_snd_buffer,                      &
-                                 chunks(parallel%task+1)%left_rcv_buffer,                      &
-                                 chunks(parallel%task+1)%right_snd_buffer,                     &
-                                 chunks(parallel%task+1)%right_rcv_buffer,                     &
-                                 chunks(parallel%task+1)%bottom_snd_buffer,                    &
-                                 chunks(parallel%task+1)%bottom_rcv_buffer,                    &
-                                 chunks(parallel%task+1)%top_snd_buffer,                       &
-                                 chunks(parallel%task+1)%top_rcv_buffer,                       &
-                                 depth,X_FACE_DATA)
+    xinc = 1
+    yinc = 0
+
+    IF(left_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the left of the current image
+      chunks(left_neighbour)[left_neighbour]%field%mass_flux_x(                                                 &
+              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,          &
+              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =         &
+         chunks(chunk)%field%mass_flux_x(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                         chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+    IF(right_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the right of the current image
+      chunks(right_neighbour)[right_neighbour]%field%mass_flux_x(                                              &
+              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                 &
+              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =      &
+         chunks(chunk)%field%mass_flux_x(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                         chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+
+    ! caf: can be replaced with a sync with just the neighbours
+    sync all
+
+    IF(bottom_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(bottom_neighbour)[bottom_neighbour]%field%mass_flux_x(                                             &
+              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,       &
+              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =    &
+         chunks(chunk)%field%mass_flux_x(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                         chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+    ENDIF
+    IF(top_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(top_neighbour)[top_neighbour]%field%mass_flux_x(                                                  &
+              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,            &
+              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                   &
+         chunks(chunk)%field%mass_flux_x(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                         chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+    ENDIF
   ENDIF
 
   IF(fields(FIELD_MASS_FLUX_Y).EQ.1) THEN
-    CALL clover_exchange_message(parallel%task+1,chunks(parallel%task+1)%field%mass_flux_y,   &
-                                 chunks(parallel%task+1)%left_snd_buffer,                      &
-                                 chunks(parallel%task+1)%left_rcv_buffer,                      &
-                                 chunks(parallel%task+1)%right_snd_buffer,                     &
-                                 chunks(parallel%task+1)%right_rcv_buffer,                     &
-                                 chunks(parallel%task+1)%bottom_snd_buffer,                    &
-                                 chunks(parallel%task+1)%bottom_rcv_buffer,                    &
-                                 chunks(parallel%task+1)%top_snd_buffer,                       &
-                                 chunks(parallel%task+1)%top_rcv_buffer,                       &
-                                 depth,Y_FACE_DATA)
+    xinc = 0
+    yinc = 1
+
+    IF(left_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the left of the current image
+      chunks(left_neighbour)[left_neighbour]%field%mass_flux_y(                                                 &
+              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,          &
+              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =         &
+         chunks(chunk)%field%mass_flux_y(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                         chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+    IF(right_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image on the right of the current image
+      chunks(right_neighbour)[right_neighbour]%field%mass_flux_y(                                              &
+              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                 &
+              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =      &
+         chunks(chunk)%field%mass_flux_y(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                         chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+    ENDIF
+
+    ! caf: can be replaced with a sync with just the neighbours
+    sync all
+
+    IF(bottom_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(bottom_neighbour)[bottom_neighbour]%field%mass_flux_y(                                             &
+              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,       &
+              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =    &
+         chunks(chunk)%field%mass_flux_y(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                         chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+    ENDIF
+    IF(top_neighbour.NE.external_face) THEN
+      !caf: one sided put to the image under the current image
+      chunks(top_neighbour)[top_neighbour]%field%mass_flux_y(                                                   &
+              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,             &
+              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                    &
+         chunks(chunk)%field%mass_flux_y(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                         chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+    ENDIF
   ENDIF
 
+  ! caf: syncronise all processes here to ensure that they have all finished the halo exchange before they start the next phase 
+  sync all
 
 END SUBROUTINE clover_exchange
-
-SUBROUTINE clover_exchange_message(chunk,field,                            &
-                                   left_snd_buffer,                        &
-                                   left_rcv_buffer,                        &
-                                   right_snd_buffer,                       &
-                                   right_rcv_buffer,                       &
-                                   bottom_snd_buffer,                      &
-                                   bottom_rcv_buffer,                      &
-                                   top_snd_buffer,                         &
-                                   top_rcv_buffer,                         &
-                                   depth,field_type)
-
-  IMPLICIT NONE
-
-  REAL(KIND=8) :: field(-1:,-1:) ! This seems to work for any type of mesh data
-  REAL(KIND=8) :: left_snd_buffer(:),left_rcv_buffer(:),right_snd_buffer(:),right_rcv_buffer(:)
-  REAL(KIND=8) :: bottom_snd_buffer(:),bottom_rcv_buffer(:),top_snd_buffer(:),top_rcv_buffer(:)
-
-  INTEGER      :: chunk,depth,field_type
-
-  INTEGER      :: size,err,tag,j,k,x_inc,y_inc,index
-  INTEGER      :: receiver,sender
-  INTEGER      :: left_neighbour_chunk, right_neighbour_chunk, bottom_neighbour_chunk, top_neighbour_chunk
-
-  ! Field type will either be cell, vertex, x_face or y_face to get the message limits correct
-
-  ! I am packing my own buffers. I am sure this could be improved with MPI data types
-  !  but this will do for now
-
-  ! I am also sending buffers to chunks with the same task id for now.
-  ! This can be improved in the future but at the moment there is just 1 chunk per task anyway
-
-  ! The tag will be a function of the sending chunk and the face it is coming from
-  !  like chunk 6 sending the left face
-
-  ! No open mp in here either. May be beneficial will packing and unpacking in the future, though I am not sure.
-
-  ! Change this so it will allow more than 1 chunk per task
-
-
-  ! Pack and send
-
-  ! These array modifications still need to be added on, plus the donor data location changes as in update_halo
-  IF(field_type.EQ.CELL_DATA) THEN
-    x_inc=0
-    y_inc=0
-  ENDIF
-  IF(field_type.EQ.VERTEX_DATA) THEN
-    x_inc=1
-    y_inc=1
-  ENDIF
-  IF(field_type.EQ.X_FACE_DATA) THEN
-    x_inc=1
-    y_inc=0
-  ENDIF
-  IF(field_type.EQ.Y_FACE_DATA) THEN
-    x_inc=0
-    y_inc=1
-  ENDIF
-
-  ! Pack real data into buffers
-  IF(parallel%task.EQ.chunks(chunk)%task) THEN
-    IF(chunks(chunk)%chunk_neighbours(chunk_left).NE.external_face) THEN
-      size=(1+(chunks(chunk)%field%y_max+y_inc+depth)-(chunks(chunk)%field%y_min-depth))*depth
-      DO k=chunks(chunk)%field%y_min-depth,chunks(chunk)%field%y_max+y_inc+depth
-        DO j=1,depth
-          index=j+(k+depth-1)*depth
-          left_snd_buffer(index)=field(chunks(chunk)%field%x_min+x_inc-1+j,k)
-        ENDDO
-      ENDDO
-      left_neighbour_chunk = chunks(chunk)%chunk_neighbours(chunk_left)
-      receiver=chunks(left_neighbour_chunk)%task
-      chunks(left_neighbour_chunk)[receiver+1]%right_rcv_buffer = left_snd_buffer
-    ENDIF
-
-    IF(chunks(chunk)%chunk_neighbours(chunk_right).NE.external_face) THEN
-      size=(1+(chunks(chunk)%field%y_max+y_inc+depth)-(chunks(chunk)%field%y_min-depth))*depth
-      DO k=chunks(chunk)%field%y_min-depth,chunks(chunk)%field%y_max+y_inc+depth
-        DO j=1,depth
-          index=j+(k+depth-1)*depth
-          right_snd_buffer(index)=field(chunks(chunk)%field%x_max+1-j,k)
-        ENDDO
-      ENDDO
-      right_neighbour_chunk = chunks(chunk)%chunk_neighbours(chunk_right)
-      receiver = chunks(right_neighbour_chunk)%task
-      chunks(right_neighbour_chunk)[receiver+1]%left_rcv_buffer = right_snd_buffer
-    ENDIF
-  ENDIF
-
-  ! Wait for the messages
-  sync all
-
-
-  ! Unpack buffers in halo cells
-  IF(parallel%task.EQ.chunks(chunk)%task) THEN
-    IF(chunks(chunk)%chunk_neighbours(chunk_left).NE.external_face) THEN
-      DO k=chunks(chunk)%field%y_min-depth,chunks(chunk)%field%y_max+y_inc+depth
-        DO j=1,depth
-          index=j+(k+depth-1)*depth
-          field(chunks(chunk)%field%x_min-j,k)=left_rcv_buffer(index)
-        ENDDO
-      ENDDO
-    ENDIF
-    IF(chunks(chunk)%chunk_neighbours(chunk_right).NE.external_face) THEN
-      DO k=chunks(chunk)%field%y_min-depth,chunks(chunk)%field%y_max+y_inc+depth
-        DO j=1,depth
-          index=j+(k+depth-1)*depth
-          field(chunks(chunk)%field%x_max+x_inc+j,k)=right_rcv_buffer(index)
-        ENDDO
-      ENDDO
-    ENDIF
-  ENDIF
-
-  IF(parallel%task.EQ.chunks(chunk)%task) THEN
-    IF(chunks(chunk)%chunk_neighbours(chunk_bottom).NE.external_face) THEN
-      size=(1+(chunks(chunk)%field%x_max+x_inc+depth)-(chunks(chunk)%field%x_min-depth))*depth
-      DO k=1,depth
-        DO j=chunks(chunk)%field%x_min-depth,chunks(chunk)%field%x_max+x_inc+depth
-          index=j+depth+(k-1)*(chunks(chunk)%field%x_max+x_inc+(2*depth))
-          bottom_snd_buffer(index)=field(j,chunks(chunk)%field%y_min+y_inc-1+k)
-        ENDDO
-      ENDDO
-      bottom_neighbour_chunk = chunks(chunk)%chunk_neighbours(chunk_bottom)
-      receiver=chunks(bottom_neighbour_chunk)%task
-      chunks(bottom_neighbour_chunk)[receiver+1]%top_rcv_buffer = bottom_snd_buffer
-    ENDIF
-
-    IF(chunks(chunk)%chunk_neighbours(chunk_top).NE.external_face) THEN
-      size=(1+(chunks(chunk)%field%x_max+x_inc+depth)-(chunks(chunk)%field%x_min-depth))*depth
-      DO k=1,depth
-        DO j=chunks(chunk)%field%x_min-depth,chunks(chunk)%field%x_max+x_inc+depth
-          index=j+depth+(k-1)*(chunks(chunk)%field%x_max+x_inc+(2*depth))
-          top_snd_buffer(index)=field(j,chunks(chunk)%field%y_max+1-k)
-        ENDDO
-      ENDDO
-      top_neighbour_chunk = chunks(chunk)%chunk_neighbours(chunk_top)
-      receiver=chunks(top_neighbour_chunk)%task
-      chunks(top_neighbour_chunk)[receiver+1]%bottom_rcv_buffer = top_snd_buffer
-    ENDIF
-  ENDIF
-
-  ! Wait for the messages
-  sync all
-
-  ! Unpack buffers in halo cells
-  IF(parallel%task.EQ.chunks(chunk)%task) THEN
-    IF(chunks(chunk)%chunk_neighbours(chunk_bottom).NE.external_face) THEN
-      DO k=1,depth
-        DO j=chunks(chunk)%field%x_min-depth,chunks(chunk)%field%x_max+x_inc+depth
-          index=j+depth+(k-1)*(chunks(chunk)%field%x_max+x_inc+(2*depth))
-          field(j,chunks(chunk)%field%y_min-k)=bottom_rcv_buffer(index)
-        ENDDO
-      ENDDO
-    ENDIF
-    IF(chunks(chunk)%chunk_neighbours(chunk_top).NE.external_face) THEN
-      DO k=1,depth
-        DO j=chunks(chunk)%field%x_min-depth,chunks(chunk)%field%x_max+x_inc+depth
-          index=j+depth+(k-1)*(chunks(chunk)%field%x_max+x_inc+(2*depth))
-          field(j,chunks(chunk)%field%y_max+y_inc+k)=top_rcv_buffer(index)
-        ENDDO
-      ENDDO
-    ENDIF
-  ENDIF
-
-END SUBROUTINE clover_exchange_message
 
 SUBROUTINE clover_sum(value)
 
