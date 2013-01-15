@@ -252,7 +252,8 @@ SUBROUTINE clover_exchange(fields,depth)
   ! Also, not packing all fields for each communication, doing one at a time
 
   IF(fields(FIELD_DENSITY0).EQ.1) THEN
-    xinc = 0    yinc = 0
+    xinc = 0    
+    yinc = 0
 
     IF(left_neighbour.NE.external_face) THEN
       !caf: one sided put to the image on the left of the current image
