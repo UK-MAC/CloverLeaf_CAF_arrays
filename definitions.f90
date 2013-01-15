@@ -164,7 +164,7 @@ MODULE definitions_module
   END TYPE chunk_type
 
 
-  TYPE(chunk_type),  ALLOCATABLE       :: chunks(:)
+  TYPE(chunk_type),  ALLOCATABLE       :: chunks(:)[:]
   INTEGER                              :: number_of_chunks
 
   TYPE(grid_type)                      :: grid
