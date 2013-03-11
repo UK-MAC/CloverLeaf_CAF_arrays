@@ -109,6 +109,9 @@ SUBROUTINE clover_decompose(x_cells,y_cells,left,right,bottom,top)
   INTEGER  :: chunk_x,chunk_y,mod_x,mod_y,split_found
 
   INTEGER  :: cx,cy,chunk,add_x,add_y,add_x_prev,add_y_prev
+#ifdef LOCAL_SYNC
+  INTEGER :: numNeighbours,n
+#endif
 
   ! 2D Decomposition of the mesh
 
@@ -171,6 +174,45 @@ SUBROUTINE clover_decompose(x_cells,y_cells,left,right,bottom,top)
       IF(cy.EQ.1)chunks(chunk)%chunk_neighbours(chunk_bottom)=external_face
       IF(cy.EQ.chunk_y)chunks(chunk)%chunk_neighbours(chunk_top)=external_face
       IF(cx.LE.mod_x)add_x_prev=add_x_prev+1
+
+#ifdef LOCAL_SYNC
+      numNeighbours=0
+      IF (chunks(chunk)%chunk_neighbours(chunk_left).NE.external_face) THEN
+          numNeighbours = numNeighbours +1
+      ENDIF
+      IF (chunks(chunk)%chunk_neighbours(chunk_right).NE.external_face) THEN
+         numNeighbours = numNeighbours +1
+      ENDIF
+      IF (chunks(chunk)%chunk_neighbours(chunk_top).NE.external_face) THEN
+         numNeighbours = numNeighbours +1
+      ENDIF
+      IF (chunks(chunk)%chunk_neighbours(chunk_bottom).NE.external_face) THEN
+         numNeighbours = numNeighbours +1
+      ENDIF
+      ALLOCATE(chunks(chunk)%imageNeighbours(numNeighbours))
+
+      !caf:may need to update this when multiple chunks per image so that the image is recorded correctly 
+      IF (numNeighbours > 0) THEN
+         n=1
+         IF (chunks(chunk)%chunk_neighbours(chunk_left).NE.external_face) THEN
+            chunks(chunk)%imageNeighbours(n) = chunks(chunk)%chunk_neighbours(chunk_left)
+            n=n+1
+         ENDIF
+         IF (chunks(chunk)%chunk_neighbours(chunk_right).NE.external_face) THEN
+            chunks(chunk)%imageNeighbours(n) = chunks(chunk)%chunk_neighbours(chunk_right)
+            n=n+1
+         ENDIF
+         IF (chunks(chunk)%chunk_neighbours(chunk_top).NE.external_face) THEN
+            chunks(chunk)%imageNeighbours(n) = chunks(chunk)%chunk_neighbours(chunk_top)
+            n=n+1
+         ENDIF
+         IF (chunks(chunk)%chunk_neighbours(chunk_bottom).NE.external_face) THEN
+            chunks(chunk)%imageNeighbours(n) = chunks(chunk)%chunk_neighbours(chunk_bottom)
+            n=n+1
+         ENDIF
+      ENDIF
+#endif
+
       chunk=chunk+1
     ENDDO
     add_x_prev=0
@@ -234,7 +276,11 @@ SUBROUTINE clover_exchange(fields,depth)
   top_neighbour = chunks(chunk)%chunk_neighbours(chunk_top)
 
   !caf: syncronise all processes here to ensure that all have finished the previous phase and there the halo exchange can begin
+#ifdef LOCAL_SYNC
+  sync images( chunks(chunk)%imageNeighbours )
+#else
   sync all
+#endif
 
   ! Assuming 1 patch per task, this will be changed
   ! Also, not packing all fields for each communication, doing one at a time
@@ -261,7 +307,11 @@ SUBROUTINE clover_exchange(fields,depth)
     ENDIF
 
     ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+    sync images( chunks(chunk)%imageNeighbours )
+#else
     sync all
+#endif
 
     IF(bottom_neighbour.NE.external_face) THEN
       !caf: one sided put to the image under the current image
@@ -303,7 +353,11 @@ SUBROUTINE clover_exchange(fields,depth)
     ENDIF
 
     ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+    sync images( chunks(chunk)%imageNeighbours )
+#else
     sync all
+#endif
 
     IF(bottom_neighbour.NE.external_face) THEN
       !caf: one sided put to the image under the current image
@@ -345,7 +399,11 @@ SUBROUTINE clover_exchange(fields,depth)
     ENDIF
 
     ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+    sync images( chunks(chunk)%imageNeighbours )
+#else
     sync all
+#endif
 
     IF(bottom_neighbour.NE.external_face) THEN
       !caf: one sided put to the image under the current image
@@ -387,7 +445,11 @@ SUBROUTINE clover_exchange(fields,depth)
     ENDIF
 
     ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+    sync images( chunks(chunk)%imageNeighbours )
+#else
     sync all
+#endif
 
     IF(bottom_neighbour.NE.external_face) THEN
       !caf: one sided put to the image under the current image
@@ -429,7 +491,11 @@ SUBROUTINE clover_exchange(fields,depth)
     ENDIF
 
     ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+    sync images( chunks(chunk)%imageNeighbours )
+#else
     sync all
+#endif
 
     IF(bottom_neighbour.NE.external_face) THEN
       !caf: one sided put to the image under the current image
@@ -471,7 +537,11 @@ SUBROUTINE clover_exchange(fields,depth)
     ENDIF
 
     ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+    sync images( chunks(chunk)%imageNeighbours )
+#else
     sync all
+#endif
 
     IF(bottom_neighbour.NE.external_face) THEN
       !caf: one sided put to the image under the current image
@@ -513,7 +583,11 @@ SUBROUTINE clover_exchange(fields,depth)
     ENDIF
 
     ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+    sync images( chunks(chunk)%imageNeighbours )
+#else
     sync all
+#endif
 
     IF(bottom_neighbour.NE.external_face) THEN
       !caf: one sided put to the image under the current image
@@ -555,7 +629,11 @@ SUBROUTINE clover_exchange(fields,depth)
     ENDIF
 
     ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+    sync images( chunks(chunk)%imageNeighbours )
+#else
     sync all
+#endif
 
     IF(bottom_neighbour.NE.external_face) THEN
       !caf: one sided put to the image under the current image
@@ -597,7 +675,11 @@ SUBROUTINE clover_exchange(fields,depth)
     ENDIF
 
     ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+    sync images( chunks(chunk)%imageNeighbours )
+#else
     sync all
+#endif
 
     IF(bottom_neighbour.NE.external_face) THEN
       !caf: one sided put to the image under the current image
@@ -639,7 +721,11 @@ SUBROUTINE clover_exchange(fields,depth)
     ENDIF
 
     ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+    sync images( chunks(chunk)%imageNeighbours )
+#else
     sync all
+#endif
 
     IF(bottom_neighbour.NE.external_face) THEN
       !caf: one sided put to the image under the current image
@@ -681,7 +767,11 @@ SUBROUTINE clover_exchange(fields,depth)
     ENDIF
 
     ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+    sync images( chunks(chunk)%imageNeighbours )
+#else
     sync all
+#endif
 
     IF(bottom_neighbour.NE.external_face) THEN
       !caf: one sided put to the image under the current image
@@ -723,7 +813,11 @@ SUBROUTINE clover_exchange(fields,depth)
     ENDIF
 
     ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+    sync images( chunks(chunk)%imageNeighbours )
+#else
     sync all
+#endif
 
     IF(bottom_neighbour.NE.external_face) THEN
       !caf: one sided put to the image under the current image
@@ -765,7 +859,11 @@ SUBROUTINE clover_exchange(fields,depth)
     ENDIF
 
     ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+    sync images( chunks(chunk)%imageNeighbours )
+#else
     sync all
+#endif
 
     IF(bottom_neighbour.NE.external_face) THEN
       !caf: one sided put to the image under the current image
@@ -807,7 +905,11 @@ SUBROUTINE clover_exchange(fields,depth)
     ENDIF
 
     ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+    sync images( chunks(chunk)%imageNeighbours )
+#else
     sync all
+#endif
 
     IF(bottom_neighbour.NE.external_face) THEN
       !caf: one sided put to the image under the current image
@@ -849,7 +951,11 @@ SUBROUTINE clover_exchange(fields,depth)
     ENDIF
 
     ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+    sync images( chunks(chunk)%imageNeighbours )
+#else
     sync all
+#endif
 
     IF(bottom_neighbour.NE.external_face) THEN
       !caf: one sided put to the image under the current image
@@ -870,7 +976,11 @@ SUBROUTINE clover_exchange(fields,depth)
   ENDIF
 
   ! caf: syncronise all processes here to ensure that they have all finished the halo exchange before they start the next phase 
-  sync all
+#ifdef LOCAL_SYNC
+    sync images( chunks(chunk)%imageNeighbours )
+#else
+    sync all
+#endif
 
 END SUBROUTINE clover_exchange
 
