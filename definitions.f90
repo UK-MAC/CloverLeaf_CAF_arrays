@@ -148,7 +148,7 @@ MODULE definitions_module
    
    TYPE chunk_type
 
-     INTEGER         :: task   !mpi task
+     INTEGER         :: task   !caf image minus 1
 
      INTEGER         :: chunk_neighbours(4) ! Chunks, not tasks, so we can overload in the future
 

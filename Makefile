@@ -65,10 +65,15 @@ endif
 OMP_INTEL     = -openmp
 OMP_SUN       = -xopenmp=parallel -vpara
 OMP_GNU       = -fopenmp
-OMP_CRAY      =
 OMP_PGI       = -mp=nonuma
 OMP_PATHSCALE = -mp
 OMP_XL        = -qsmp=omp -qthreaded
+ifdef OPENMP
+  OMP_CRAY      = -h omp
+else
+  OMP_CRAY      = -h noomp
+endif
+
 OMP=$(OMP_$(COMPILER))
 
 FLAGS_INTEL     = -O3 -ipo -no-prec-div
