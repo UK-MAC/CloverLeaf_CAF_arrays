@@ -63,6 +63,7 @@ SUBROUTINE PdV_kernel(predict,                                          &
   REAL(KIND=8)  :: recip_volume,energy_change,min_cell_volume
   REAL(KIND=8)  :: right_flux,left_flux,top_flux,bottom_flux,total_flux
 
+!$omp PARALLEL
 
   IF(predict)THEN
 
@@ -130,6 +131,7 @@ SUBROUTINE PdV_kernel(predict,                                          &
 
   ENDIF
 
+!$omp END PARALLEL
 
 END SUBROUTINE PdV_kernel
 
