@@ -115,6 +115,7 @@ SUBROUTINE field_summary()
             WRITE(g_out,*)"This is test is considered NOT PASSED"
           ENDIF
         ENDIF
+    ENDIF
   ENDIF
 
 
