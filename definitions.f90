@@ -72,7 +72,25 @@ MODULE definitions_module
    LOGICAL      :: use_C_kernels
    LOGICAL      :: use_OA_kernels
 
-   LOGICAL      :: use_vector_loops ! Some loops work better in serial depending on the hardware
+   LOGICAL      :: profiler_on ! Internal code profiler to make comparisons across systems easier
+
+   TYPE profiler_type
+     REAL(KIND=8)       :: timestep        &
+                          ,acceleration    &
+                          ,PdV             &
+                          ,cell_advection  &
+                          ,mom_advection   &
+                          ,viscosity       &
+                          ,ideal_gas       &
+                          ,visit           &
+                          ,summary         &
+                          ,reset           &
+                          ,revert          &
+                          ,flux            &
+                          ,halo_exchange
+                     
+   END TYPE profiler_type
+   TYPE(profiler_type)  :: profiler
 
    REAL(KIND=8) :: end_time
 
@@ -166,6 +184,7 @@ MODULE definitions_module
 
   END TYPE chunk_type
 
+  REAL(KIND=8),ALLOCATABLE    :: totals(:)[:]
 
   TYPE(chunk_type),  ALLOCATABLE       :: chunks(:)[:]
   INTEGER                              :: number_of_chunks

@@ -49,8 +49,7 @@ void advec_mom_kernel_c_(int *xmin,int *xmax,int *ymin,int *ymax,
                       double *celldy,
                          int *whch_vl,
                          int *swp_nmbr,
-                         int *drctn,
-                         int *vctr)
+                         int *drctn)
 
 {
   int x_min=*xmin;
@@ -60,14 +59,11 @@ void advec_mom_kernel_c_(int *xmin,int *xmax,int *ymin,int *ymax,
   int which_vel=*whch_vl;
   int sweep_number=*swp_nmbr;
   int direction=*drctn;
-  int vector=*vctr;
 
   int j,k,mom_sweep;
   int upwind,donor,downwind,dif;
   double sigma,wind,width;
-  double sigma2,wind2;
   double vdiffuw,vdiffdw,auw,adw,limiter;
-  double vdiffuw2,vdiffdw2,auw2,limiter2;
 
   double *vel1;
 
@@ -79,10 +75,8 @@ void advec_mom_kernel_c_(int *xmin,int *xmax,int *ymin,int *ymax,
 
   mom_sweep=direction+2*(sweep_number-1);
   
-#pragma omp parallel
  {
   if(mom_sweep==1){
-#pragma omp for private(j)
     for (k=y_min-2;k<=y_max+2;k++) {
 #pragma ivdep
       for (j=x_min-2;j<=x_max+2;j++) {
@@ -95,7 +89,6 @@ void advec_mom_kernel_c_(int *xmin,int *xmax,int *ymin,int *ymax,
       }
     }
   } else if(mom_sweep==2){
-#pragma omp for private(j)
     for (k=y_min-2;k<=y_max+2;k++) {
 #pragma ivdep
       for (j=x_min-2;j<=x_max+2;j++) {
@@ -108,7 +101,6 @@ void advec_mom_kernel_c_(int *xmin,int *xmax,int *ymin,int *ymax,
       }
     }
   } else if(mom_sweep==3){
-#pragma omp for private(j)
     for (k=y_min-2;k<=y_max+2;k++) {
 #pragma ivdep
       for (j=x_min-2;j<=x_max+2;j++) {
@@ -119,7 +111,6 @@ void advec_mom_kernel_c_(int *xmin,int *xmax,int *ymin,int *ymax,
       }
     }
   } else if(mom_sweep==4){
-#pragma omp for private(j)
     for (k=y_min-2;k<=y_max+2;k++) {
 #pragma ivdep
       for (j=x_min-2;j<=x_max+2;j++) {
@@ -132,7 +123,6 @@ void advec_mom_kernel_c_(int *xmin,int *xmax,int *ymin,int *ymax,
   }
 
   if(direction==1) {
-#pragma omp for private(j)
     for (k=y_min;k<=y_max+1;k++) {
 #pragma ivdep
       for (j=x_min-2;j<=x_max+2;j++) {
@@ -143,7 +133,6 @@ void advec_mom_kernel_c_(int *xmin,int *xmax,int *ymin,int *ymax,
                                                              +mass_flux_x[FTNREF2D(j+1,k  ,x_max+5,x_min-2,y_min-2)]);
       }
     }
-#pragma omp for private(j)
     for (k=y_min;k<=y_max+1;k++) {
 #pragma ivdep
       for (j=x_min-1;j<=x_max+2;j++) {
@@ -158,7 +147,6 @@ void advec_mom_kernel_c_(int *xmin,int *xmax,int *ymin,int *ymax,
                                                                   *post_vol[FTNREF2D(j-1,k  ,x_max+5,x_min-2,y_min-2)]);
       }
     }
-#pragma omp for private(j)
     for (k=y_min;k<=y_max+1;k++) {
 #pragma ivdep
       for (j=x_min-1;j<=x_max+2;j++) {
@@ -166,76 +154,38 @@ void advec_mom_kernel_c_(int *xmin,int *xmax,int *ymin,int *ymax,
                           -node_flux[FTNREF2D(j-1,k  ,x_max+5,x_min-2,y_min-2)]+node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)];
       }
     }
-    if (vector==1) {
-#pragma omp for private(sigma,width,limiter,vdiffuw,vdiffdw,auw,adw,wind,sigma2,limiter2,vdiffuw2,vdiffdw2,auw2,wind2)
-      for (k=y_min;k<=y_max+1;k++) {
-#pragma ivdep
-        for (j=x_min-1;j<=x_max+1;j++) {
-          sigma=fabs(node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)])/(node_mass_pre[FTNREF2D(j+1,k  ,x_max+5,x_min-2,y_min-2)]);
-          sigma2=fabs(node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)])/(node_mass_pre[FTNREF2D(j,k  ,x_max+5,x_min-2,y_min-2)]);
-          width=celldx[FTNREF1D(j,x_min-2)];
-          vdiffuw=vel1[FTNREF2D(j+1,k  ,x_max+5,x_min-2,y_min-2)]-vel1[FTNREF2D(j+2,k  ,x_max+5,x_min-2,y_min-2)];
-          vdiffdw=vel1[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]-vel1[FTNREF2D(j+1,k  ,x_max+5,x_min-2,y_min-2)];
-          vdiffuw2=vel1[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]-vel1[FTNREF2D(j-1,k  ,x_max+5,x_min-2,y_min-2)];
-          vdiffdw2=-vdiffdw;
+    for (k=y_min;k<=y_max+1;k++) {
+      for (j=x_min-1;j<=x_max+1;j++) {
+        if(node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]<0.0){
+          upwind=j+2;
+          donor=j+1;
+          downwind=j;
+          dif=donor;
+        }
+        else{
+          upwind=j-1;
+          donor=j;
+          downwind=j+1;
+          dif=upwind;
+        }
+        sigma=fabs(node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)])/(node_mass_pre[FTNREF2D(donor,k  ,x_max+5,x_min-2,y_min-2)]);
+        width=celldx[FTNREF1D(j,x_min-2)];
+        vdiffuw=vel1[FTNREF2D(donor,k  ,x_max+5,x_min-2,y_min-2)]-vel1[FTNREF2D(upwind,k  ,x_max+5,x_min-2,y_min-2)];
+        vdiffdw=vel1[FTNREF2D(downwind,k  ,x_max+5,x_min-2,y_min-2)]-vel1[FTNREF2D(donor,k  ,x_max+5,x_min-2,y_min-2)];
+        limiter=0.0;
+        if(vdiffuw*vdiffdw>0.0){
           auw=fabs(vdiffuw);
           adw=fabs(vdiffdw);
-          auw2=fabs(vdiffuw2);
           wind=1.0;
-          wind2=1.0;
-          limiter=0.0;
           if(vdiffdw<=0.0) wind=-1.0;
-          if(vdiffdw2<=0.0) wind2=-1.0;
-          limiter=wind*MIN(width*((2.0-sigma)*adw/width+(1.0+sigma)*auw/celldx[FTNREF1D(j+1,x_min-2)])/6.0,MIN(auw,adw));
-          limiter2=wind2*MIN(width*((2.0-sigma2)*adw/width+(1.0+sigma2)*auw2/celldx[FTNREF1D(j-1,x_min-2)])/6.0,MIN(auw2,adw));
-          if(vdiffuw*vdiffdw<=0.0) limiter=0.0;
-          if(vdiffuw2*vdiffdw2<=0.0) limiter2=0.0;
-          if(node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]<0.0){
-            advec_vel[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]=vel1[FTNREF2D(j+1,k  ,x_max+5,x_min-2,y_min-2)]+(1.0-sigma)*limiter;
-          }
-          else{
-            advec_vel[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]=vel1[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]+(1.0-sigma2)*limiter2;
-          }
-          mom_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]=advec_vel[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]
-                                                             *node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)];
+          limiter=wind*MIN(width*((2.0-sigma)*adw/width+(1.0+sigma)*auw/celldx[FTNREF1D(dif,x_min-2)])/6.0,MIN(auw,adw));
         }
-      }
-    }else{
-#pragma omp for private(upwind,downwind,donor,dif,sigma,width,limiter,vdiffuw,vdiffdw,auw,adw,wind,j)
-      for (k=y_min;k<=y_max+1;k++) {
-        for (j=x_min-1;j<=x_max+1;j++) {
-          if(node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]<0.0){
-            upwind=j+2;
-            donor=j+1;
-            downwind=j;
-            dif=donor;
-          }
-          else{
-            upwind=j-1;
-            donor=j;
-            downwind=j+1;
-            dif=upwind;
-          }
-          sigma=fabs(node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)])/(node_mass_pre[FTNREF2D(donor,k  ,x_max+5,x_min-2,y_min-2)]);
-          width=celldx[FTNREF1D(j,x_min-2)];
-          vdiffuw=vel1[FTNREF2D(donor,k  ,x_max+5,x_min-2,y_min-2)]-vel1[FTNREF2D(upwind,k  ,x_max+5,x_min-2,y_min-2)];
-          vdiffdw=vel1[FTNREF2D(downwind,k  ,x_max+5,x_min-2,y_min-2)]-vel1[FTNREF2D(donor,k  ,x_max+5,x_min-2,y_min-2)];
-          limiter=0.0;
-          if(vdiffuw*vdiffdw>0.0){
-            auw=fabs(vdiffuw);
-            adw=fabs(vdiffdw);
-            wind=1.0;
-            if(vdiffdw<=0.0) wind=-1.0;
-            limiter=wind*MIN(width*((2.0-sigma)*adw/width+(1.0+sigma)*auw/celldx[FTNREF1D(dif,x_min-2)])/6.0,MIN(auw,adw));
-          }
-          advec_vel[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]=vel1[FTNREF2D(donor,k  ,x_max+5,x_min-2,y_min-2)]+(1.0-sigma)*limiter;
-          mom_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]=advec_vel[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]
-                                                             *node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)];
-        }
+        advec_vel[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]=vel1[FTNREF2D(donor,k  ,x_max+5,x_min-2,y_min-2)]+(1.0-sigma)*limiter;
+        mom_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]=advec_vel[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]
+                                                           *node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)];
       }
     }
 
-#pragma omp for private(j)
     for (k=y_min;k<=y_max+1;k++) {
 #pragma ivdep
       for (j=x_min;j<=x_max+1;j++) {
@@ -248,7 +198,6 @@ void advec_mom_kernel_c_(int *xmin,int *xmax,int *ymin,int *ymax,
     }
   }
   else if(direction==2){
-#pragma omp for private(j)
     for (k=y_min-2;k<=y_max+2;k++) {
 #pragma ivdep
       for (j=x_min;j<=x_max+1;j++) {
@@ -259,7 +208,6 @@ void advec_mom_kernel_c_(int *xmin,int *xmax,int *ymin,int *ymax,
                                                              +mass_flux_y[FTNREF2D(j  ,k+1,x_max+4,x_min-2,y_min-2)]);
       }
     }
-#pragma omp for private(j)
     for (k=y_min-1;k<=y_max+2;k++) {
 #pragma ivdep
       for (j=x_min;j<=x_max+1;j++) {
@@ -274,7 +222,6 @@ void advec_mom_kernel_c_(int *xmin,int *xmax,int *ymin,int *ymax,
                                                                   *post_vol[FTNREF2D(j-1,k  ,x_max+5,x_min-2,y_min-2)]);
       }
     }
-#pragma omp for private(j)
     for (k=y_min-1;k<=y_max+2;k++) {
 #pragma ivdep
       for (j=x_min;j<=x_max+1;j++) {
@@ -282,75 +229,37 @@ void advec_mom_kernel_c_(int *xmin,int *xmax,int *ymin,int *ymax,
                           -node_flux[FTNREF2D(j  ,k-1,x_max+5,x_min-2,y_min-2)]+node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)];
       }
     }
-    if (vector==1) {
-#pragma omp for private(sigma,width,limiter,vdiffuw,vdiffdw,auw,adw,wind,sigma2,limiter2,vdiffuw2,vdiffdw2,auw2,wind2)
-      for (k=y_min-1;k<=y_max+1;k++) {
-#pragma ivdep
-        for (j=x_min;j<=x_max+1;j++) {
-          sigma=fabs(node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)])/(node_mass_pre[FTNREF2D(j  ,k+1,x_max+5,x_min-2,y_min-2)]);
-          sigma2=fabs(node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)])/(node_mass_pre[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]);
-          width=celldy[FTNREF1D(k,x_min-2)];
-          vdiffuw=vel1[FTNREF2D(j  ,k+1,x_max+5,x_min-2,y_min-2)]-vel1[FTNREF2D(j  ,k+2,x_max+5,x_min-2,y_min-2)];
-          vdiffdw=vel1[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]-vel1[FTNREF2D(j  ,k+1,x_max+5,x_min-2,y_min-2)];
-          vdiffuw2=vel1[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]-vel1[FTNREF2D(j  ,k-1,x_max+5,x_min-2,y_min-2)];
-          vdiffdw2=-vdiffdw;
+    for (k=y_min-1;k<=y_max+1;k++) {
+      for (j=x_min;j<=x_max+1;j++) {
+        if(node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]<0.0){
+          upwind=k+2;
+          donor=k+1;
+          downwind=k;
+          dif=donor;
+        }
+        else{
+          upwind=k-1;
+          donor=k;
+          downwind=k+1;
+          dif=upwind;
+        }
+        sigma=fabs(node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)])/(node_mass_pre[FTNREF2D(j  ,donor,x_max+5,x_min-2,y_min-2)]);
+        width=celldy[FTNREF1D(k,y_min-2)];
+        vdiffuw=vel1[FTNREF2D(j  ,donor,x_max+5,x_min-2,y_min-2)]-vel1[FTNREF2D(j  ,upwind,x_max+5,x_min-2,y_min-2)];
+        vdiffdw=vel1[FTNREF2D(j  ,downwind ,x_max+5,x_min-2,y_min-2)]-vel1[FTNREF2D(j  ,donor,x_max+5,x_min-2,y_min-2)];
+        limiter=0.0;
+        if(vdiffuw*vdiffdw>0.0){
           auw=fabs(vdiffuw);
           adw=fabs(vdiffdw);
-          auw2=fabs(vdiffuw2);
           wind=1.0;
-          wind2=1.0;
-          limiter=0.0;
           if(vdiffdw<=0.0) wind=-1.0;
-          if(vdiffdw2<=0.0) wind2=-1.0;
-          limiter=wind*MIN(width*((2.0-sigma)*adw/width+(1.0+sigma)*auw/celldy[FTNREF1D(k+1,x_min-2)])/6.0,MIN(auw,adw));
-          limiter2=wind2*MIN(width*((2.0-sigma2)*adw/width+(1.0+sigma2)*auw2/celldy[FTNREF1D(k-1,x_min-2)])/6.0,MIN(auw2,adw));
-          if(vdiffuw*vdiffdw<=0.0) limiter=0.0;
-          if(vdiffuw2*vdiffdw2<=0.0) limiter2=0.0;
-          if(node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]<0.0){
-            advec_vel[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]=vel1[FTNREF2D(j  ,k+1,x_max+5,x_min-2,y_min-2)]+(1.0-sigma)*limiter;
-          }
-          else{
-            advec_vel[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]=vel1[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]+(1.0-sigma2)*limiter2;
-          }
-          mom_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]=advec_vel[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]
-                                                             *node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)];
+          limiter=wind*MIN(width*((2.0-sigma)*adw/width+(1.0+sigma)*auw/celldy[FTNREF1D(dif,y_min-2)])/6.0,MIN(auw,adw));
         }
-      }
-    }else{
-#pragma omp for private(upwind,downwind,donor,dif,sigma,width,limiter,vdiffuw,vdiffdw,auw,adw,wind,j)
-      for (k=y_min-1;k<=y_max+1;k++) {
-        for (j=x_min;j<=x_max+1;j++) {
-          if(node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]<0.0){
-            upwind=k+2;
-            donor=k+1;
-            downwind=k;
-            dif=donor;
-          }
-          else{
-            upwind=k-1;
-            donor=k;
-            downwind=k+1;
-            dif=upwind;
-          }
-          sigma=fabs(node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)])/(node_mass_pre[FTNREF2D(j  ,donor,x_max+5,x_min-2,y_min-2)]);
-          width=celldy[FTNREF1D(k,y_min-2)];
-          vdiffuw=vel1[FTNREF2D(j  ,donor,x_max+5,x_min-2,y_min-2)]-vel1[FTNREF2D(j  ,upwind,x_max+5,x_min-2,y_min-2)];
-          vdiffdw=vel1[FTNREF2D(j  ,downwind ,x_max+5,x_min-2,y_min-2)]-vel1[FTNREF2D(j  ,donor,x_max+5,x_min-2,y_min-2)];
-          limiter=0.0;
-          if(vdiffuw*vdiffdw>0.0){
-            auw=fabs(vdiffuw);
-            adw=fabs(vdiffdw);
-            wind=1.0;
-            if(vdiffdw<=0.0) wind=-1.0;
-            limiter=wind*MIN(width*((2.0-sigma)*adw/width+(1.0+sigma)*auw/celldy[FTNREF1D(dif,y_min-2)])/6.0,MIN(auw,adw));
-          }
-          advec_vel[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]=vel1[FTNREF2D(j  ,donor,x_max+5,x_min-2,y_min-2)]+(1.0-sigma)*limiter;
-          mom_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]=advec_vel[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]
-                                                             *node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)];
-        }
+        advec_vel[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]=vel1[FTNREF2D(j  ,donor,x_max+5,x_min-2,y_min-2)]+(1.0-sigma)*limiter;
+        mom_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]=advec_vel[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)]
+                                                           *node_flux[FTNREF2D(j  ,k  ,x_max+5,x_min-2,y_min-2)];
       }
     }
-#pragma omp for private(j)
     for (k=y_min;k<=y_max+1;k++) {
 #pragma ivdep
       for (j=x_min;j<=x_max+1;j++) {

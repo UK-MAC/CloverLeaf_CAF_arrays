@@ -16,7 +16,7 @@
 # CloverLeaf. If not, see http://www.gnu.org/licenses/.
 
 #  @brief Makefile for CloverLeaf
-#  @author Wayne Gaudin
+#  @author Wayne Gaudin, Andy Herdman
 #  @details Agnostic, platform independent makefile for the Clover Leaf benchmark code.
 
 # It is not meant to be clever in anyway, just a simple build out of the box script.
@@ -76,15 +76,15 @@ endif
 
 OMP=$(OMP_$(COMPILER))
 
-FLAGS_INTEL     = -O3 -ipo -no-prec-div
+FLAGS_INTEL     = -O3 -no-prec-div
 FLAGS_SUN       = -fast -xipo=2 -Xlistv4
 FLAGS_GNU       = -O3 -march=native -funroll-loops
 FLAGS_CRAY      = -em -ra -h acc_model=fast_addr:no_deep_copy:auto_async_all -hcaf -eZ
 FLAGS_PGI       = -fastsse -gopt -Mipa=fast -Mlist
 FLAGS_PATHSCALE = -O3
-FLAGS_XL       = -O5 -qipa=partition=large -g -qfullpath -Q -qsigtrap -qextname=flush:ideal_gas_kernel_c:viscosity_kernel_c:pdv_kernel_c:revert_kernel_c:accelerate_kernel_c:flux_calc_kernel_c:advec_cell_kernel_c:advec_mom_kernel_c:reset_field_kernel_c:timer_c -qlistopt -qattr=full -qlist -qreport -qxref=full -qsource -qsuppress=1506-224:1500-036
+FLAGS_XL       = -O5 -qipa=partition=large -g -qfullpath -Q -qsigtrap -qextname=flush:ideal_gas_kernel_c:viscosity_kernel_c:pdv_kernel_c:revert_kernel_c:accelerate_kernel_c:flux_calc_kernel_c:advec_cell_kernel_c:advec_mom_kernel_c:reset_field_kernel_c:timer_c:unpack_top_bottom_buffers_c:pack_top_bottom_buffers_c:unpack_left_right_buffers_c:pack_left_right_buffers_c:field_summary_kernel_c:update_halo_kernel_c:generate_chunk_kernel_c:initialise_chunk_kernel_c:calc_dt_kernel_c -qlistopt -qattr=full -qlist -qreport -qxref=full -qsource -qsuppress=1506-224:1500-036
 FLAGS_          = -O3
-CFLAGS_INTEL     = -O3 -ipo -no-prec-div -restrict -fno-alias
+CFLAGS_INTEL     = -O3 -no-prec-div -restrict -fno-alias
 CFLAGS_SUN       = -fast -xipo=2
 CFLAGS_GNU       = -O3 -march=native -funroll-loops
 CFLAGS_CRAY      = -em -h list=a
@@ -100,7 +100,7 @@ ifdef DEBUG
   FLAGS_CRAY      = -O0 -g -em -eD -hcaf -eZ
   FLAGS_PGI       = -O0 -g -C -Mchkstk -Ktrap=fp -Mchkfpstk -Mchkptr
   FLAGS_PATHSCALE = -O0 -g
-  FLAGS_XL       = -O0 -g -qfullpath -qcheck -qflttrap=ov:zero:invalid:en -qsource -qinitauto=FF -qmaxmem=-1 -qinit=f90ptr -qsigtrap -qextname=flush:ideal_gas_kernel_c:viscosity_kernel_c:pdv_kernel_c:revert_kernel_c:accelerate_kernel_c:flux_calc_kernel_c:advec_cell_kernel_c:advec_mom_kernel_c:reset_field_kernel_c:timer_c
+  FLAGS_XL       = -O0 -g -qfullpath -qcheck -qflttrap=ov:zero:invalid:en -qsource -qinitauto=FF -qmaxmem=-1 -qinit=f90ptr -qsigtrap -qextname=flush:ideal_gas_kernel_c:viscosity_kernel_c:pdv_kernel_c:revert_kernel_c:accelerate_kernel_c:flux_calc_kernel_c:advec_cell_kernel_c:advec_mom_kernel_c:reset_field_kernel_c:timer_c:unpack_top_bottom_buffers_c:pack_top_bottom_buffers_c:unpack_left_right_buffers_c:pack_left_right_buffers_c:field_summary_kernel_c:update_halo_kernel_c:generate_chunk_kernel_c:initialise_chunk_kernel_c:calc_dt_kernel_c
   FLAGS_          = -O0 -g
   CFLAGS_INTEL    = -O0 -g -debug all -traceback
   CFLAGS_SUN      = -g -O0 -xopenmp=noopt -stackvar -u -fpover=yes -C -ftrap=common
@@ -135,6 +135,7 @@ clover_leaf: c_lover *.f90 Makefile
 	$(MPI_COMPILER) $(FLAGS)	\
 	data.f90			\
 	definitions.f90			\
+	pack_kernel.f90			\
 	clover.f90			\
 	report.f90			\
 	timer.f90			\
@@ -185,7 +186,13 @@ clover_leaf: c_lover *.f90 Makefile
 	viscosity_kernel_c.o            \
 	advec_mom_kernel_c.o            \
 	advec_cell_kernel_c.o           \
+	calc_dt_kernel_c.o		\
+	field_summary_kernel_c.o	\
+	update_halo_kernel_c.o		\
 	timer_c.o                       \
+	pack_kernel_c.o			\
+	generate_chunk_kernel_c.o	\
+	initialise_chunk_kernel_c.o	\
 	-o clover_leaf; echo $(MESSAGE)
 
 c_lover: *.c Makefile
@@ -199,7 +206,14 @@ c_lover: *.c Makefile
 	viscosity_kernel_c.c            \
 	advec_mom_kernel_c.c            \
 	advec_cell_kernel_c.c           \
+	calc_dt_kernel_c.c		\
+	field_summary_kernel_c.c	\
+	update_halo_kernel_c.c		\
+	pack_kernel_c.c			\
+	generate_chunk_kernel_c.c	\
+	initialise_chunk_kernel_c.c	\
 	timer_c.c
 
+
 clean:
-	rm -f *.o *.mod *genmod* *.lst *.cub *.ptx *.i clover_leaf
+	rm -f *.o *.mod *genmod* *cuda* *hmd* *.cu *.oo *.hmf *.lst *.cub *.ptx  clover_leaf

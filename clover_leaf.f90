@@ -17,7 +17,7 @@
 
 !>  @brief CloverLeaf top level program: Invokes the main cycle
 !>  @author Wayne Gaudin
-!>  @details CLoverLeaf in a proxy-app that solves the compressible Euler
+!>  @details CloverLeaf in a proxy-app that solves the compressible Euler
 !>  Equations using an explicit finite volume method on a Cartesian grid.
 !>  The grid is staggered with internal energy, density and pressure at cell
 !>  centres and velocities on cell vertices.
@@ -42,30 +42,21 @@ PROGRAM clover_leaf
 
   IMPLICIT NONE
 
-!$ INTEGER :: OMP_GET_NUM_THREADS,OMP_GET_THREAD_NUM
 
   CALL clover_init_comms()
 
-!$OMP PARALLEL
   IF(parallel%boss)THEN
-!$  IF(OMP_GET_THREAD_NUM().EQ.0) THEN
       WRITE(*,*)
       WRITE(*,'(a15,f8.3)') 'Clover Version ',g_version
       WRITE(*,'(a19)') 'CAF Arrays Version'
-!$    WRITE(*,'(a18)') 'OpenMP Version'
       WRITE(*,'(a14,i6)') 'Image Count ',parallel%max_task !CAF
-!$    WRITE(*,'(a15,i5)') 'Thread Count: ',OMP_GET_NUM_THREADS()
       WRITE(*,*)
       WRITE(0,*)
       WRITE(0,'(a15,f8.3)') 'Clover Version ',g_version
       WRITE(0,'(a18)') 'CAF Arrays Version'
-!$    WRITE(0,'(a18)') 'OpenMP Version'
       WRITE(0,'(a14,i6)') 'Image Count ',parallel%max_task !CAF
-!$    WRITE(0,'(a15,i5)') 'Thread Count: ',OMP_GET_NUM_THREADS()
       WRITE(0,*)
-!$  ENDIF
   ENDIF
-!$OMP END PARALLEL
 
   CALL initialise
 

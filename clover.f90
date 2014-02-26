@@ -259,721 +259,735 @@ END SUBROUTINE clover_allocate_buffers
 
 SUBROUTINE clover_exchange(fields,depth)
 
-  IMPLICIT NONE
+    IMPLICIT NONE
 
-  INTEGER      :: fields(:),depth
-  INTEGER      :: chunk, left_neighbour, right_neighbour, top_neighbour, bottom_neighbour, xinc, yinc
+    INTEGER      :: fields(:),depth
+    INTEGER      :: chunk, left_neighbour, right_neighbour, top_neighbour, bottom_neighbour, xinc, yinc
 
-  ! Assuming 1 patch per task, this will be changed
-  ! Also, not packing all fields for each communication, doing one at a time
+    ! Assuming 1 patch per task, this will be changed
+    ! Also, not packing all fields for each communication, doing one at a time
 
-  ! the chunk number which the executing task is responsible for
-  chunk = parallel%task+1
+    ! the chunk number which the executing task is responsible for
+    chunk = parallel%task+1
 
-  left_neighbour = chunks(chunk)%chunk_neighbours(chunk_left)
-  right_neighbour = chunks(chunk)%chunk_neighbours(chunk_right)
-  bottom_neighbour = chunks(chunk)%chunk_neighbours(chunk_bottom)
-  top_neighbour = chunks(chunk)%chunk_neighbours(chunk_top)
+    left_neighbour = chunks(chunk)%chunk_neighbours(chunk_left)
+    right_neighbour = chunks(chunk)%chunk_neighbours(chunk_right)
+    bottom_neighbour = chunks(chunk)%chunk_neighbours(chunk_bottom)
+    top_neighbour = chunks(chunk)%chunk_neighbours(chunk_top)
 
-  !caf: syncronise all processes here to ensure that all have finished the previous phase and there the halo exchange can begin
+    !caf: syncronise all processes here to ensure that all have finished the previous phase and there the halo exchange can begin
 #ifdef LOCAL_SYNC
-  sync images( chunks(chunk)%imageNeighbours )
+    sync images( chunks(chunk)%imageNeighbours )
 #else
-  sync all
+    sync all
 #endif
 
-  ! Assuming 1 patch per task, this will be changed
-  ! Also, not packing all fields for each communication, doing one at a time
+    ! Assuming 1 patch per task, this will be changed
+    ! Also, not packing all fields for each communication, doing one at a time
 
-  IF(fields(FIELD_DENSITY0).EQ.1) THEN
-    xinc = 0    
-    yinc = 0
+    IF(fields(FIELD_DENSITY0).EQ.1) THEN
+        xinc = 0    
+        yinc = 0
 
-    IF(left_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the left of the current image
-      chunks(left_neighbour)[left_neighbour]%field%density0(                                                 &
-               chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,      &
-               chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth ) =    &
-         chunks(chunk)%field%density0(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
-                                      chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        IF(left_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the left of the current image
+          chunks(left_neighbour)[left_neighbour]%field%density0(                                                 &
+                   chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,      &
+                   chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth ) =    &
+             chunks(chunk)%field%density0(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                          chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+        IF(right_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the right of the current image
+          chunks(right_neighbour)[right_neighbour]%field%density0(                                              &
+                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,              &
+                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =   &
+              chunks(chunk)%field%density0(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,         &
+                                           chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+
+        ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+        sync images( chunks(chunk)%imageNeighbours )
+#else
+        sync all
+#endif
+
+        IF(bottom_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(bottom_neighbour)[bottom_neighbour]%field%density0(                                             &
+                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
+                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+             chunks(chunk)%field%density0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                          chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+        ENDIF
+        IF(top_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(top_neighbour)[top_neighbour]%field%density0(                                                  &
+                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,         &
+                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                &
+             chunks(chunk)%field%density0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                          chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+        ENDIF
     ENDIF
-    IF(right_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the right of the current image
-      chunks(right_neighbour)[right_neighbour]%field%density0(                                              &
-              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,              &
-              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =   &
-          chunks(chunk)%field%density0(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,         &
+
+
+    IF(fields(FIELD_DENSITY1).EQ.1) THEN
+        xinc = 0
+        yinc = 0
+
+        IF(left_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the left of the current image
+          chunks(left_neighbour)[left_neighbour]%field%density1(                                                 &
+                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,       &
+                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =      &
+             chunks(chunk)%field%density1(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                          chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+        IF(right_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the right of the current image
+          chunks(right_neighbour)[right_neighbour]%field%density1(                                              &
+                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,              &
+                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =   &
+             chunks(chunk)%field%density1(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                          chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+
+        ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+        sync images( chunks(chunk)%imageNeighbours )
+#else
+        sync all
+#endif
+
+        IF(bottom_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(bottom_neighbour)[bottom_neighbour]%field%density1(                                             &
+                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
+                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+             chunks(chunk)%field%density1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                          chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+        ENDIF
+        IF(top_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(top_neighbour)[top_neighbour]%field%density1(                                                  &
+                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,         &
+                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                &
+             chunks(chunk)%field%density1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                          chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+        ENDIF
+    ENDIF
+
+
+    IF(fields(FIELD_ENERGY0).EQ.1) THEN
+        xinc = 0
+        yinc = 0
+
+        IF(left_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the left of the current image
+          chunks(left_neighbour)[left_neighbour]%field%energy0(                                                 &
+                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,      &
+                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =     &
+             chunks(chunk)%field%energy0(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                         chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+        IF(right_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the right of the current image
+          chunks(right_neighbour)[right_neighbour]%field%energy0(                                              &
+                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,             &
+                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =  &
+             chunks(chunk)%field%energy0(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                         chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+
+        ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+        sync images( chunks(chunk)%imageNeighbours )
+#else
+        sync all
+#endif
+
+        IF(bottom_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(bottom_neighbour)[bottom_neighbour]%field%energy0(                                              &
+                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
+                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+             chunks(chunk)%field%energy0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,   &
+                                         chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+        ENDIF
+        IF(top_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(top_neighbour)[top_neighbour]%field%energy0(                                                  &
+                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,        &
+                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =               &
+             chunks(chunk)%field%energy0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                         chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+        ENDIF
+    ENDIF
+
+
+    IF(fields(FIELD_ENERGY1).EQ.1) THEN
+        xinc = 0
+        yinc = 0
+
+        IF(left_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the left of the current image
+          chunks(left_neighbour)[left_neighbour]%field%energy1(                                                 &
+                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,      &
+                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =     &
+             chunks(chunk)%field%energy1(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                         chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+        IF(right_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the right of the current image
+          chunks(right_neighbour)[right_neighbour]%field%energy1(                                              &
+                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,             &
+                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =  &
+             chunks(chunk)%field%energy1(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                         chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+
+        ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+        sync images( chunks(chunk)%imageNeighbours )
+#else
+        sync all
+#endif
+
+        IF(bottom_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(bottom_neighbour)[bottom_neighbour]%field%energy1(                                              &
+                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
+                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+             chunks(chunk)%field%energy1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,   &
+                                         chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+        ENDIF
+        IF(top_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(top_neighbour)[top_neighbour]%field%energy1(                                                  &
+                   chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,       &
+                   chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =              &
+             chunks(chunk)%field%energy1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                         chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+        ENDIF
+    ENDIF
+
+
+    IF(fields(FIELD_PRESSURE).EQ.1) THEN
+        xinc = 0
+        yinc = 0
+
+        IF(left_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the left of the current image
+          chunks(left_neighbour)[left_neighbour]%field%pressure(                                                 &
+                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,       &
+                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =      &
+             chunks(chunk)%field%pressure(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                          chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+        IF(right_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the right of the current image
+          chunks(right_neighbour)[right_neighbour]%field%pressure(                                              &
+                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,              &
+                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =   &
+             chunks(chunk)%field%pressure(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                          chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+
+        ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+        sync images( chunks(chunk)%imageNeighbours )
+#else
+        sync all
+#endif
+
+        IF(bottom_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(bottom_neighbour)[bottom_neighbour]%field%pressure(                                             &
+                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
+                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+             chunks(chunk)%field%pressure(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                          chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+        ENDIF
+        IF(top_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(top_neighbour)[top_neighbour]%field%pressure(                                                  &
+                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,         &
+                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                &
+             chunks(chunk)%field%pressure(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                          chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+        ENDIF
+    ENDIF
+
+
+    IF(fields(FIELD_VISCOSITY).EQ.1) THEN
+        xinc = 0
+        yinc = 0
+
+        IF(left_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the left of the current image
+          chunks(left_neighbour)[left_neighbour]%field%viscosity(                                                 &
+                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,        &
+                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =       &
+             chunks(chunk)%field%viscosity(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                           chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+        IF(right_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the right of the current image
+          chunks(right_neighbour)[right_neighbour]%field%viscosity(                                              &
+                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,               &
+                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =    &
+             chunks(chunk)%field%viscosity(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                           chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+
+        ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+        sync images( chunks(chunk)%imageNeighbours )
+#else
+        sync all
+#endif
+
+        IF(bottom_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(bottom_neighbour)[bottom_neighbour]%field%viscosity(                                             &
+                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,     &
+                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =  &
+             chunks(chunk)%field%viscosity(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                           chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+        ENDIF
+        IF(top_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(top_neighbour)[top_neighbour]%field%viscosity(                                                   &
+                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,           &
+                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                  &
+             chunks(chunk)%field%viscosity(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                           chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+        ENDIF
+    ENDIF
+
+
+    IF(fields(FIELD_SOUNDSPEED).EQ.1) THEN
+        xinc = 0
+        yinc = 0
+
+        IF(left_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the left of the current image
+          chunks(left_neighbour)[left_neighbour]%field%soundspeed(                                                 &
+                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,         &
+                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =        &
+             chunks(chunk)%field%soundspeed(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                            chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+        IF(right_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the right of the current image
+          chunks(right_neighbour)[right_neighbour]%field%soundspeed(                                              &
+                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                &
+                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =     &
+             chunks(chunk)%field%soundspeed(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                            chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+
+        ! caf: can be replaced with a sync with just the neighbours
+#ifdef LOCAL_SYNC
+        sync images( chunks(chunk)%imageNeighbours )
+#else
+        sync all
+#endif
+
+        IF(bottom_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(bottom_neighbour)[bottom_neighbour]%field%soundspeed(                                             &
+                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,      &
+                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =   &
+             chunks(chunk)%field%soundspeed(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                            chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+        ENDIF
+        IF(top_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(top_neighbour)[top_neighbour]%field%soundspeed(                                                   &
+                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,            &
+                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                   &
+             chunks(chunk)%field%soundspeed(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                            chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+        ENDIF
+    ENDIF
+
+
+    IF(fields(FIELD_XVEL0).EQ.1) THEN
+        xinc = 1
+        yinc = 1
+
+        IF(left_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the left of the current image
+          chunks(left_neighbour)[left_neighbour]%field%xvel0(                                                 &
+                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,    &
+                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =   &
+             chunks(chunk)%field%xvel0(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-
-    ! caf: can be replaced with a sync with just the neighbours
-#ifdef LOCAL_SYNC
-    sync images( chunks(chunk)%imageNeighbours )
-#else
-    sync all
-#endif
-
-    IF(bottom_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(bottom_neighbour)[bottom_neighbour]%field%density0(                                             &
-              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
-              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
-         chunks(chunk)%field%density0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
-                                      chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
-    ENDIF
-    IF(top_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(top_neighbour)[top_neighbour]%field%density0(                                                  &
-              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,         &
-              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                &
-         chunks(chunk)%field%density0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
-                                      chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
-    ENDIF
-  ENDIF
-
-  IF(fields(FIELD_DENSITY1).EQ.1) THEN
-    xinc = 0
-    yinc = 0
-
-    IF(left_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the left of the current image
-      chunks(left_neighbour)[left_neighbour]%field%density1(                                                 &
-              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,       &
-              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =      &
-         chunks(chunk)%field%density1(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
-                                      chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-    IF(right_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the right of the current image
-      chunks(right_neighbour)[right_neighbour]%field%density1(                                              &
-              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,              &
-              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =   &
-         chunks(chunk)%field%density1(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
-                                      chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-
-    ! caf: can be replaced with a sync with just the neighbours
-#ifdef LOCAL_SYNC
-    sync images( chunks(chunk)%imageNeighbours )
-#else
-    sync all
-#endif
-
-    IF(bottom_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(bottom_neighbour)[bottom_neighbour]%field%density1(                                             &
-              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
-              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
-         chunks(chunk)%field%density1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
-                                      chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
-    ENDIF
-    IF(top_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(top_neighbour)[top_neighbour]%field%density1(                                                  &
-              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,         &
-              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                &
-         chunks(chunk)%field%density1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
-                                      chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
-    ENDIF
-  ENDIF
-
-  IF(fields(FIELD_ENERGY0).EQ.1) THEN
-    xinc = 0
-    yinc = 0
-
-    IF(left_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the left of the current image
-      chunks(left_neighbour)[left_neighbour]%field%energy0(                                                 &
-              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,      &
-              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =     &
-         chunks(chunk)%field%energy0(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
-                                     chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-    IF(right_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the right of the current image
-      chunks(right_neighbour)[right_neighbour]%field%energy0(                                              &
-              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,             &
-              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =  &
-         chunks(chunk)%field%energy0(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
-                                     chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-
-    ! caf: can be replaced with a sync with just the neighbours
-#ifdef LOCAL_SYNC
-    sync images( chunks(chunk)%imageNeighbours )
-#else
-    sync all
-#endif
-
-    IF(bottom_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(bottom_neighbour)[bottom_neighbour]%field%energy0(                                              &
-              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
-              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
-         chunks(chunk)%field%energy0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,   &
-                                     chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
-    ENDIF
-    IF(top_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(top_neighbour)[top_neighbour]%field%energy0(                                                  &
-              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,        &
-              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =               &
-         chunks(chunk)%field%energy0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
-                                     chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
-    ENDIF
-  ENDIF
-
-  IF(fields(FIELD_ENERGY1).EQ.1) THEN
-    xinc = 0
-    yinc = 0
-
-    IF(left_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the left of the current image
-      chunks(left_neighbour)[left_neighbour]%field%energy1(                                                 &
-              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,      &
-              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =     &
-         chunks(chunk)%field%energy1(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
-                                     chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-    IF(right_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the right of the current image
-      chunks(right_neighbour)[right_neighbour]%field%energy1(                                              &
-              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,             &
-              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =  &
-         chunks(chunk)%field%energy1(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
-                                     chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-
-    ! caf: can be replaced with a sync with just the neighbours
-#ifdef LOCAL_SYNC
-    sync images( chunks(chunk)%imageNeighbours )
-#else
-    sync all
-#endif
-
-    IF(bottom_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(bottom_neighbour)[bottom_neighbour]%field%energy1(                                              &
-              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
-              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
-         chunks(chunk)%field%energy1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,   &
-                                     chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
-    ENDIF
-    IF(top_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(top_neighbour)[top_neighbour]%field%energy1(                                                  &
-               chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,       &
-               chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =              &
-         chunks(chunk)%field%energy1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
-                                     chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
-    ENDIF
-  ENDIF
-
-  IF(fields(FIELD_PRESSURE).EQ.1) THEN
-    xinc = 0
-    yinc = 0
-
-    IF(left_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the left of the current image
-      chunks(left_neighbour)[left_neighbour]%field%pressure(                                                 &
-              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,       &
-              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =      &
-         chunks(chunk)%field%pressure(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
-                                      chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-    IF(right_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the right of the current image
-      chunks(right_neighbour)[right_neighbour]%field%pressure(                                              &
-              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,              &
-              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =   &
-         chunks(chunk)%field%pressure(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
-                                      chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-
-    ! caf: can be replaced with a sync with just the neighbours
-#ifdef LOCAL_SYNC
-    sync images( chunks(chunk)%imageNeighbours )
-#else
-    sync all
-#endif
-
-    IF(bottom_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(bottom_neighbour)[bottom_neighbour]%field%pressure(                                             &
-              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
-              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
-         chunks(chunk)%field%pressure(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
-                                      chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
-    ENDIF
-    IF(top_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(top_neighbour)[top_neighbour]%field%pressure(                                                  &
-              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,         &
-              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                &
-         chunks(chunk)%field%pressure(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
-                                      chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
-    ENDIF
-  ENDIF
-
-  IF(fields(FIELD_VISCOSITY).EQ.1) THEN
-    xinc = 0
-    yinc = 0
-
-    IF(left_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the left of the current image
-      chunks(left_neighbour)[left_neighbour]%field%viscosity(                                                 &
-              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,        &
-              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =       &
-         chunks(chunk)%field%viscosity(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+        ENDIF
+        IF(right_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the right of the current image
+          chunks(right_neighbour)[right_neighbour]%field%xvel0(                                               &
+                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,            &
+                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) = &
+             chunks(chunk)%field%xvel0(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,           &
                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-    IF(right_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the right of the current image
-      chunks(right_neighbour)[right_neighbour]%field%viscosity(                                              &
-              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,               &
-              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =    &
-         chunks(chunk)%field%viscosity(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
-                                       chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
+        ENDIF
 
-    ! caf: can be replaced with a sync with just the neighbours
+        ! caf: can be replaced with a sync with just the neighbours
 #ifdef LOCAL_SYNC
-    sync images( chunks(chunk)%imageNeighbours )
+        sync images( chunks(chunk)%imageNeighbours )
 #else
-    sync all
+        sync all
 #endif
 
-    IF(bottom_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(bottom_neighbour)[bottom_neighbour]%field%viscosity(                                             &
-              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,     &
-              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =  &
-         chunks(chunk)%field%viscosity(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+        IF(bottom_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(bottom_neighbour)[bottom_neighbour]%field%xvel0(                                                &
+                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
+                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+             chunks(chunk)%field%xvel0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,     &
                                        chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
-    ENDIF
-    IF(top_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(top_neighbour)[top_neighbour]%field%viscosity(                                                   &
-              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,           &
-              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                  &
-         chunks(chunk)%field%viscosity(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+        ENDIF
+        IF(top_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(top_neighbour)[top_neighbour]%field%xvel0(                                                  &
+                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,      &
+                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =             &
+             chunks(chunk)%field%xvel0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
                                        chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
-    ENDIF
-  ENDIF
-
-  IF(fields(FIELD_SOUNDSPEED).EQ.1) THEN
-    xinc = 0
-    yinc = 0
-
-    IF(left_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the left of the current image
-      chunks(left_neighbour)[left_neighbour]%field%soundspeed(                                                 &
-              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,         &
-              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =        &
-         chunks(chunk)%field%soundspeed(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
-                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-    IF(right_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the right of the current image
-      chunks(right_neighbour)[right_neighbour]%field%soundspeed(                                              &
-              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                &
-              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =     &
-         chunks(chunk)%field%soundspeed(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
-                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
     ENDIF
 
-    ! caf: can be replaced with a sync with just the neighbours
+
+    IF(fields(FIELD_XVEL1).EQ.1) THEN
+        xinc = 1
+        yinc = 1
+
+        IF(left_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the left of the current image
+          chunks(left_neighbour)[left_neighbour]%field%xvel1(                                                 &
+                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,    &
+                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =   &
+             chunks(chunk)%field%xvel1(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                       chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+        IF(right_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the right of the current image
+          chunks(right_neighbour)[right_neighbour]%field%xvel1(                                               &
+                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,            &
+                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) = &
+             chunks(chunk)%field%xvel1(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,           &
+                                       chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+
+        ! caf: can be replaced with a sync with just the neighbours
 #ifdef LOCAL_SYNC
-    sync images( chunks(chunk)%imageNeighbours )
+        sync images( chunks(chunk)%imageNeighbours )
 #else
-    sync all
+        sync all
 #endif
 
-    IF(bottom_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(bottom_neighbour)[bottom_neighbour]%field%soundspeed(                                             &
-              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,      &
-              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =   &
-         chunks(chunk)%field%soundspeed(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
-                                        chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
-    ENDIF
-    IF(top_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(top_neighbour)[top_neighbour]%field%soundspeed(                                                   &
-              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,            &
-              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                   &
-         chunks(chunk)%field%soundspeed(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
-                                        chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
-    ENDIF
-  ENDIF
-
-  IF(fields(FIELD_XVEL0).EQ.1) THEN
-    xinc = 1
-    yinc = 1
-
-    IF(left_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the left of the current image
-      chunks(left_neighbour)[left_neighbour]%field%xvel0(                                                 &
-              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,    &
-              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =   &
-         chunks(chunk)%field%xvel0(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
-                                   chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-    IF(right_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the right of the current image
-      chunks(right_neighbour)[right_neighbour]%field%xvel0(                                               &
-              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,            &
-              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) = &
-         chunks(chunk)%field%xvel0(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,           &
-                                   chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        IF(bottom_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(bottom_neighbour)[bottom_neighbour]%field%xvel1(                                                &
+                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
+                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+             chunks(chunk)%field%xvel1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,     &
+                                       chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+        ENDIF
+        IF(top_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(top_neighbour)[top_neighbour]%field%xvel1(                                                  &
+                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,      &
+                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =             &
+             chunks(chunk)%field%xvel1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                       chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+        ENDIF
     ENDIF
 
-    ! caf: can be replaced with a sync with just the neighbours
+
+    IF(fields(FIELD_YVEL0).EQ.1) THEN
+        xinc = 1
+        yinc = 1
+
+        IF(left_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the left of the current image
+          chunks(left_neighbour)[left_neighbour]%field%yvel0(                                                 &
+                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,    &
+                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =   &
+             chunks(chunk)%field%yvel0(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                       chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+        IF(right_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the right of the current image
+          chunks(right_neighbour)[right_neighbour]%field%yvel0(                                               &
+                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,            &
+                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) = &
+             chunks(chunk)%field%yvel0(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,           &
+                                       chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+
+        ! caf: can be replaced with a sync with just the neighbours
 #ifdef LOCAL_SYNC
-    sync images( chunks(chunk)%imageNeighbours )
+        sync images( chunks(chunk)%imageNeighbours )
 #else
-    sync all
+        sync all
 #endif
 
-    IF(bottom_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(bottom_neighbour)[bottom_neighbour]%field%xvel0(                                                &
-              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
-              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
-         chunks(chunk)%field%xvel0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,     &
-                                   chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
-    ENDIF
-    IF(top_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(top_neighbour)[top_neighbour]%field%xvel0(                                                  &
-              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,      &
-              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =             &
-         chunks(chunk)%field%xvel0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
-                                   chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
-    ENDIF
-  ENDIF
-
-  IF(fields(FIELD_XVEL1).EQ.1) THEN
-    xinc = 1
-    yinc = 1
-
-    IF(left_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the left of the current image
-      chunks(left_neighbour)[left_neighbour]%field%xvel1(                                                 &
-              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,    &
-              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =   &
-         chunks(chunk)%field%xvel1(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
-                                   chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-    IF(right_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the right of the current image
-      chunks(right_neighbour)[right_neighbour]%field%xvel1(                                               &
-              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,            &
-              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) = &
-         chunks(chunk)%field%xvel1(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,           &
-                                   chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        IF(bottom_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(bottom_neighbour)[bottom_neighbour]%field%yvel0(                                                &
+                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
+                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+             chunks(chunk)%field%yvel0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,     &
+                                       chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+        ENDIF
+        IF(top_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(top_neighbour)[top_neighbour]%field%yvel0(                                                  &
+                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,      &
+                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =             &
+             chunks(chunk)%field%yvel0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                       chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+        ENDIF
     ENDIF
 
-    ! caf: can be replaced with a sync with just the neighbours
+
+    IF(fields(FIELD_YVEL1).EQ.1) THEN
+        xinc = 1
+        yinc = 1
+
+        IF(left_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the left of the current image
+          chunks(left_neighbour)[left_neighbour]%field%yvel1(                                                 &
+                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,    &
+                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =   &
+             chunks(chunk)%field%yvel1(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                       chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+        IF(right_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the right of the current image
+          chunks(right_neighbour)[right_neighbour]%field%yvel1(                                               &
+                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,            &
+                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) = &
+             chunks(chunk)%field%yvel1(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,           &
+                                       chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+
+        ! caf: can be replaced with a sync with just the neighbours
 #ifdef LOCAL_SYNC
-    sync images( chunks(chunk)%imageNeighbours )
+        sync images( chunks(chunk)%imageNeighbours )
 #else
-    sync all
+        sync all
 #endif
 
-    IF(bottom_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(bottom_neighbour)[bottom_neighbour]%field%xvel1(                                                &
-              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
-              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
-         chunks(chunk)%field%xvel1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,     &
-                                   chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
-    ENDIF
-    IF(top_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(top_neighbour)[top_neighbour]%field%xvel1(                                                  &
-              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,      &
-              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =             &
-         chunks(chunk)%field%xvel1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
-                                   chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
-    ENDIF
-  ENDIF
-
-  IF(fields(FIELD_YVEL0).EQ.1) THEN
-    xinc = 1
-    yinc = 1
-
-    IF(left_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the left of the current image
-      chunks(left_neighbour)[left_neighbour]%field%yvel0(                                                 &
-              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,    &
-              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =   &
-         chunks(chunk)%field%yvel0(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
-                                   chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-    IF(right_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the right of the current image
-      chunks(right_neighbour)[right_neighbour]%field%yvel0(                                               &
-              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,            &
-              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) = &
-         chunks(chunk)%field%yvel0(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,           &
-                                   chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        IF(bottom_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(bottom_neighbour)[bottom_neighbour]%field%yvel1(                                                &
+                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
+                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+             chunks(chunk)%field%yvel1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,     &
+                                       chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+        ENDIF
+        IF(top_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(top_neighbour)[top_neighbour]%field%yvel1(                                                  &
+                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,      &
+                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =             &
+             chunks(chunk)%field%yvel1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                       chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+        ENDIF
     ENDIF
 
-    ! caf: can be replaced with a sync with just the neighbours
+
+    IF(fields(FIELD_VOL_FLUX_X).EQ.1) THEN
+        xinc = 1
+        yinc = 0
+
+        IF(left_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the left of the current image
+          chunks(left_neighbour)[left_neighbour]%field%vol_flux_x(                                                 &
+                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,         &
+                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =        &
+             chunks(chunk)%field%vol_flux_x(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                            chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+        IF(right_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the right of the current image
+          chunks(right_neighbour)[right_neighbour]%field%vol_flux_x(                                              &
+                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                &
+                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =     &
+             chunks(chunk)%field%vol_flux_x(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                            chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+
+        ! caf: can be replaced with a sync with just the neighbours
 #ifdef LOCAL_SYNC
-    sync images( chunks(chunk)%imageNeighbours )
+        sync images( chunks(chunk)%imageNeighbours )
 #else
-    sync all
+        sync all
 #endif
 
-    IF(bottom_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(bottom_neighbour)[bottom_neighbour]%field%yvel0(                                                &
-              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
-              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
-         chunks(chunk)%field%yvel0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,     &
-                                   chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
-    ENDIF
-    IF(top_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(top_neighbour)[top_neighbour]%field%yvel0(                                                  &
-              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,      &
-              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =             &
-         chunks(chunk)%field%yvel0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
-                                   chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
-    ENDIF
-  ENDIF
-
-  IF(fields(FIELD_YVEL1).EQ.1) THEN
-    xinc = 1
-    yinc = 1
-
-    IF(left_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the left of the current image
-      chunks(left_neighbour)[left_neighbour]%field%yvel1(                                                 &
-              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,    &
-              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =   &
-         chunks(chunk)%field%yvel1(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
-                                   chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-    IF(right_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the right of the current image
-      chunks(right_neighbour)[right_neighbour]%field%yvel1(                                               &
-              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,            &
-              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) = &
-         chunks(chunk)%field%yvel1(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,           &
-                                   chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        IF(bottom_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(bottom_neighbour)[bottom_neighbour]%field%vol_flux_x(                                             &
+                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,      &
+                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =   &
+             chunks(chunk)%field%vol_flux_x(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                            chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+        ENDIF
+        IF(top_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(top_neighbour)[top_neighbour]%field%vol_flux_x(                                                  &
+                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,           &
+                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                  &
+             chunks(chunk)%field%vol_flux_x(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                            chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+        ENDIF
     ENDIF
 
-    ! caf: can be replaced with a sync with just the neighbours
+
+    IF(fields(FIELD_VOL_FLUX_Y).EQ.1) THEN
+        xinc = 0
+        yinc = 1
+
+        IF(left_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the left of the current image
+          chunks(left_neighbour)[left_neighbour]%field%vol_flux_y(                                                 &
+                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,         &
+                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =        &
+             chunks(chunk)%field%vol_flux_y(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                            chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+        IF(right_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the right of the current image
+          chunks(right_neighbour)[right_neighbour]%field%vol_flux_y(                                              &
+                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                &
+                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =     &
+             chunks(chunk)%field%vol_flux_y(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                            chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+
+      ! caf: can be replaced with a sync with just the neighbours
 #ifdef LOCAL_SYNC
-    sync images( chunks(chunk)%imageNeighbours )
+        sync images( chunks(chunk)%imageNeighbours )
 #else
-    sync all
+        sync all
 #endif
 
-    IF(bottom_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(bottom_neighbour)[bottom_neighbour]%field%yvel1(                                                &
-              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
-              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
-         chunks(chunk)%field%yvel1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,     &
-                                   chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
-    ENDIF
-    IF(top_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(top_neighbour)[top_neighbour]%field%yvel1(                                                  &
-              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,      &
-              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =             &
-         chunks(chunk)%field%yvel1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
-                                   chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
-    ENDIF
-  ENDIF
-
-  IF(fields(FIELD_VOL_FLUX_X).EQ.1) THEN
-    xinc = 1
-    yinc = 0
-
-    IF(left_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the left of the current image
-      chunks(left_neighbour)[left_neighbour]%field%vol_flux_x(                                                 &
-              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,         &
-              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =        &
-         chunks(chunk)%field%vol_flux_x(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
-                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-    IF(right_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the right of the current image
-      chunks(right_neighbour)[right_neighbour]%field%vol_flux_x(                                              &
-              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                &
-              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =     &
-         chunks(chunk)%field%vol_flux_x(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
-                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        IF(bottom_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(bottom_neighbour)[bottom_neighbour]%field%vol_flux_y(                                             &
+                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,      &
+                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =   &
+             chunks(chunk)%field%vol_flux_y(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                            chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+        ENDIF
+        IF(top_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(top_neighbour)[top_neighbour]%field%vol_flux_y(                                                  &
+                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,           &
+                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                  &
+             chunks(chunk)%field%vol_flux_y(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                            chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+        ENDIF
     ENDIF
 
-    ! caf: can be replaced with a sync with just the neighbours
+
+    IF(fields(FIELD_MASS_FLUX_X).EQ.1) THEN
+        xinc = 1
+        yinc = 0
+
+        IF(left_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the left of the current image
+          chunks(left_neighbour)[left_neighbour]%field%mass_flux_x(                                                 &
+                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,          &
+                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =         &
+             chunks(chunk)%field%mass_flux_x(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                             chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+        IF(right_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the right of the current image
+          chunks(right_neighbour)[right_neighbour]%field%mass_flux_x(                                              &
+                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                 &
+                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =      &
+             chunks(chunk)%field%mass_flux_x(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                             chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+
+        ! caf: can be replaced with a sync with just the neighbours
 #ifdef LOCAL_SYNC
-    sync images( chunks(chunk)%imageNeighbours )
+        sync images( chunks(chunk)%imageNeighbours )
 #else
-    sync all
+        sync all
 #endif
 
-    IF(bottom_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(bottom_neighbour)[bottom_neighbour]%field%vol_flux_x(                                             &
-              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,      &
-              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =   &
-         chunks(chunk)%field%vol_flux_x(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
-                                        chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
-    ENDIF
-    IF(top_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(top_neighbour)[top_neighbour]%field%vol_flux_x(                                                  &
-              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,           &
-              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                  &
-         chunks(chunk)%field%vol_flux_x(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
-                                        chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
-    ENDIF
-  ENDIF
-
-  IF(fields(FIELD_VOL_FLUX_Y).EQ.1) THEN
-    xinc = 0
-    yinc = 1
-
-    IF(left_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the left of the current image
-      chunks(left_neighbour)[left_neighbour]%field%vol_flux_y(                                                 &
-              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,         &
-              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =        &
-         chunks(chunk)%field%vol_flux_y(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
-                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-    IF(right_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the right of the current image
-      chunks(right_neighbour)[right_neighbour]%field%vol_flux_y(                                              &
-              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                &
-              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =     &
-         chunks(chunk)%field%vol_flux_y(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
-                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        IF(bottom_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(bottom_neighbour)[bottom_neighbour]%field%mass_flux_x(                                             &
+                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,       &
+                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =    &
+             chunks(chunk)%field%mass_flux_x(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                             chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+        ENDIF
+        IF(top_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(top_neighbour)[top_neighbour]%field%mass_flux_x(                                                  &
+                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,            &
+                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                   &
+             chunks(chunk)%field%mass_flux_x(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
+                                             chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+        ENDIF
     ENDIF
 
-    ! caf: can be replaced with a sync with just the neighbours
+
+    IF(fields(FIELD_MASS_FLUX_Y).EQ.1) THEN
+        xinc = 0
+        yinc = 1
+
+        IF(left_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the left of the current image
+          chunks(left_neighbour)[left_neighbour]%field%mass_flux_y(                                                 &
+                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,          &
+                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =         &
+             chunks(chunk)%field%mass_flux_y(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
+                                             chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+        IF(right_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image on the right of the current image
+          chunks(right_neighbour)[right_neighbour]%field%mass_flux_y(                                              &
+                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                 &
+                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =      &
+             chunks(chunk)%field%mass_flux_y(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
+                                             chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
+        ENDIF
+
+        ! caf: can be replaced with a sync with just the neighbours
 #ifdef LOCAL_SYNC
-    sync images( chunks(chunk)%imageNeighbours )
+        sync images( chunks(chunk)%imageNeighbours )
 #else
-    sync all
+        sync all
 #endif
 
-    IF(bottom_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(bottom_neighbour)[bottom_neighbour]%field%vol_flux_y(                                             &
-              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,      &
-              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =   &
-         chunks(chunk)%field%vol_flux_y(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
-                                        chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+        IF(bottom_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(bottom_neighbour)[bottom_neighbour]%field%mass_flux_y(                                             &
+                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,       &
+                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =    &
+             chunks(chunk)%field%mass_flux_y(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                             chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
+        ENDIF
+        IF(top_neighbour.NE.external_face) THEN
+          !caf: one sided put to the image under the current image
+          chunks(top_neighbour)[top_neighbour]%field%mass_flux_y(                                                   &
+                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,             &
+                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                    &
+             chunks(chunk)%field%mass_flux_y(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
+                                             chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
+        ENDIF
     ENDIF
-    IF(top_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(top_neighbour)[top_neighbour]%field%vol_flux_y(                                                  &
-              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,           &
-              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                  &
-         chunks(chunk)%field%vol_flux_y(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
-                                        chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
-    ENDIF
-  ENDIF
-
-  IF(fields(FIELD_MASS_FLUX_X).EQ.1) THEN
-    xinc = 1
-    yinc = 0
-
-    IF(left_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the left of the current image
-      chunks(left_neighbour)[left_neighbour]%field%mass_flux_x(                                                 &
-              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,          &
-              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =         &
-         chunks(chunk)%field%mass_flux_x(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
-                                         chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-    IF(right_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the right of the current image
-      chunks(right_neighbour)[right_neighbour]%field%mass_flux_x(                                              &
-              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                 &
-              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =      &
-         chunks(chunk)%field%mass_flux_x(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
-                                         chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-
-    ! caf: can be replaced with a sync with just the neighbours
-#ifdef LOCAL_SYNC
-    sync images( chunks(chunk)%imageNeighbours )
-#else
-    sync all
-#endif
-
-    IF(bottom_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(bottom_neighbour)[bottom_neighbour]%field%mass_flux_x(                                             &
-              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,       &
-              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =    &
-         chunks(chunk)%field%mass_flux_x(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
-                                         chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
-    ENDIF
-    IF(top_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(top_neighbour)[top_neighbour]%field%mass_flux_x(                                                  &
-              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,            &
-              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                   &
-         chunks(chunk)%field%mass_flux_x(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
-                                         chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
-    ENDIF
-  ENDIF
-
-  IF(fields(FIELD_MASS_FLUX_Y).EQ.1) THEN
-    xinc = 0
-    yinc = 1
-
-    IF(left_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the left of the current image
-      chunks(left_neighbour)[left_neighbour]%field%mass_flux_y(                                                 &
-              chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,          &
-              chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =         &
-         chunks(chunk)%field%mass_flux_y(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
-                                         chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-    IF(right_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image on the right of the current image
-      chunks(right_neighbour)[right_neighbour]%field%mass_flux_y(                                              &
-              chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                 &
-              chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =      &
-         chunks(chunk)%field%mass_flux_y(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
-                                         chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
-    ENDIF
-
-    ! caf: can be replaced with a sync with just the neighbours
-#ifdef LOCAL_SYNC
-    sync images( chunks(chunk)%imageNeighbours )
-#else
-    sync all
-#endif
-
-    IF(bottom_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(bottom_neighbour)[bottom_neighbour]%field%mass_flux_y(                                             &
-              chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,       &
-              chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =    &
-         chunks(chunk)%field%mass_flux_y(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
-                                         chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
-    ENDIF
-    IF(top_neighbour.NE.external_face) THEN
-      !caf: one sided put to the image under the current image
-      chunks(top_neighbour)[top_neighbour]%field%mass_flux_y(                                                   &
-              chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,             &
-              chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                    &
-         chunks(chunk)%field%mass_flux_y(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
-                                         chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
-    ENDIF
-  ENDIF
 
   ! caf: syncronise all processes here to ensure that they have all finished the halo exchange before they start the next phase 
 #ifdef LOCAL_SYNC
@@ -1017,6 +1031,40 @@ SUBROUTINE clover_min(value)
   value=minimum
 
 END SUBROUTINE clover_min
+
+SUBROUTINE clover_max(value)
+
+    IMPLICIT NONE
+
+    REAL(KIND=8) :: value
+
+    REAL(KIND=8) :: maximum
+
+    INTEGER :: err
+
+    maximum=value
+
+    CALL CO_MAX(value, maximum)
+
+    value=maximum
+
+END SUBROUTINE clover_max
+
+SUBROUTINE clover_allgather(value,values)
+
+    IMPLICIT NONE
+
+    REAL(KIND=8) :: value
+
+    REAL(KIND=8) :: values(parallel%max_task)
+
+    INTEGER :: err
+
+    values(1)=value ! Just to ensure it will work in serial
+
+    totals(parallel%image)[1] = value
+
+END SUBROUTINE clover_allgather
 
 SUBROUTINE clover_check_error(error)
 
