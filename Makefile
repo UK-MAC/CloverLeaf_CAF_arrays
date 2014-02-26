@@ -202,4 +202,4 @@ c_lover: *.c Makefile
 	timer_c.c
 
 clean:
-	rm -f *.o *.mod *genmod* *.lst *.cub *.ptx clover_leaf
+	rm -f *.o *.mod *genmod* *.lst *.cub *.ptx *.i clover_leaf
