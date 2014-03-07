@@ -75,7 +75,7 @@ SUBROUTINE visit
   IF(profiler_on) profiler%halo_exchange=profiler%halo_exchange+(timer()-kernel_time)
 
   IF(profiler_on) kernel_time=timer()
-  CALL viscosity()
+  CALL viscosity_driver()
   IF(profiler_on) profiler%viscosity=profiler%viscosity+(timer()-kernel_time)
 
   IF ( parallel%boss ) THEN
@@ -129,21 +129,21 @@ SUBROUTINE visit
       WRITE(u,'(a)')'FIELD FieldData 4'
       WRITE(u,'(a,i20,a)')'density 1 ',nxc*nyc,' double'
       DO k=chunks(c)%field%y_min,chunks(c)%field%y_max
-        WRITE(u,'(e12.4)')(chunks(c)%field%density0(j,k),j=chunks(c)%field%x_min,chunks(c)%field%x_max)
+        WRITE(u,'(e12.4)')(density0(j,k),j=chunks(c)%field%x_min,chunks(c)%field%x_max)
       ENDDO
       WRITE(u,'(a,i20,a)')'energy 1 ',nxc*nyc,' double'
       DO k=chunks(c)%field%y_min,chunks(c)%field%y_max
-        WRITE(u,'(e12.4)')(chunks(c)%field%energy0(j,k),j=chunks(c)%field%x_min,chunks(c)%field%x_max)
+        WRITE(u,'(e12.4)')(energy0(j,k),j=chunks(c)%field%x_min,chunks(c)%field%x_max)
       ENDDO
       WRITE(u,'(a,i20,a)')'pressure 1 ',nxc*nyc,' double'
       DO k=chunks(c)%field%y_min,chunks(c)%field%y_max
-        WRITE(u,'(e12.4)')(chunks(c)%field%pressure(j,k),j=chunks(c)%field%x_min,chunks(c)%field%x_max)
+        WRITE(u,'(e12.4)')(pressure(j,k),j=chunks(c)%field%x_min,chunks(c)%field%x_max)
       ENDDO
       WRITE(u,'(a,i20,a)')'viscosity 1 ',nxc*nyc,' double'
       DO k=chunks(c)%field%y_min,chunks(c)%field%y_max
         DO j=chunks(c)%field%x_min,chunks(c)%field%x_max
           temp_var=0.0
-          IF(chunks(c)%field%viscosity(j,k).GT.0.00000001) temp_var=chunks(c)%field%viscosity(j,k)
+          IF(viscosity(j,k).GT.0.00000001) temp_var=viscosity(j,k)
           WRITE(u,'(e12.4)') temp_var
         ENDDO
       ENDDO
@@ -153,7 +153,7 @@ SUBROUTINE visit
       DO k=chunks(c)%field%y_min,chunks(c)%field%y_max+1
         DO j=chunks(c)%field%x_min,chunks(c)%field%x_max+1
           temp_var=0.0
-          IF(ABS(chunks(c)%field%xvel0(j,k)).GT.0.00000001) temp_var=chunks(c)%field%xvel0(j,k)
+          IF(ABS(xvel0(j,k)).GT.0.00000001) temp_var=xvel0(j,k)
           WRITE(u,'(e12.4)') temp_var
         ENDDO
       ENDDO
@@ -161,7 +161,7 @@ SUBROUTINE visit
       DO k=chunks(c)%field%y_min,chunks(c)%field%y_max+1
         DO j=chunks(c)%field%x_min,chunks(c)%field%x_max+1
           temp_var=0.0
-          IF(ABS(chunks(c)%field%yvel0(j,k)).GT.0.00000001) temp_var=chunks(c)%field%yvel0(j,k)
+          IF(ABS(yvel0(j,k)).GT.0.00000001) temp_var=yvel0(j,k)
           WRITE(u,'(e12.4)') temp_var
         ENDDO
       ENDDO

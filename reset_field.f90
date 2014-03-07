@@ -44,27 +44,27 @@ SUBROUTINE reset_field()
                               chunks(c)%field%x_max,     &
                               chunks(c)%field%y_min,     &
                               chunks(c)%field%y_max,     &
-                              chunks(c)%field%density0,  &
-                              chunks(c)%field%density1,  &
-                              chunks(c)%field%energy0,   &
-                              chunks(c)%field%energy1,   &
-                              chunks(c)%field%xvel0,     &
-                              chunks(c)%field%xvel1,     &
-                              chunks(c)%field%yvel0,     &
-                              chunks(c)%field%yvel1      )
+                              density0,  &
+                              density1,  &
+                              energy0,   &
+                              energy1,   &
+                              xvel0,     &
+                              xvel1,     &
+                              yvel0,     &
+                              yvel1      )
       ELSEIF(use_C_kernels)THEN
         CALL reset_field_kernel_c(chunks(c)%field%x_min, &
                               chunks(c)%field%x_max,     &
                               chunks(c)%field%y_min,     &
                               chunks(c)%field%y_max,     &
-                              chunks(c)%field%density0,  &
-                              chunks(c)%field%density1,  &
-                              chunks(c)%field%energy0,   &
-                              chunks(c)%field%energy1,   &
-                              chunks(c)%field%xvel0,     &
-                              chunks(c)%field%xvel1,     &
-                              chunks(c)%field%yvel0,     &
-                              chunks(c)%field%yvel1      )
+                              density0,  &
+                              density1,  &
+                              energy0,   &
+                              energy1,   &
+                              xvel0,     &
+                              xvel1,     &
+                              yvel0,     &
+                              yvel1      )
       ENDIF
 
     ENDIF

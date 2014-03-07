@@ -55,10 +55,10 @@ SUBROUTINE generate_chunk(chunk)
                                chunks(chunk)%field%vertexy,           &
                                chunks(chunk)%field%cellx,             &
                                chunks(chunk)%field%celly,             &
-                               chunks(chunk)%field%density0,          &
-                               chunks(chunk)%field%energy0,           &
-                               chunks(chunk)%field%xvel0,             &
-                               chunks(chunk)%field%yvel0,             &
+                               density0,          &
+                               energy0,           &
+                               xvel0,             &
+                               yvel0,             &
                                number_of_states,                      &
                                state_density,                         &
                                state_energy,                          &
@@ -82,10 +82,10 @@ SUBROUTINE generate_chunk(chunk)
                                  chunks(chunk)%field%vertexy,           &
                                  chunks(chunk)%field%cellx,             &
                                  chunks(chunk)%field%celly,             &
-                                 chunks(chunk)%field%density0,          &
-                                 chunks(chunk)%field%energy0,           &
-                                 chunks(chunk)%field%xvel0,             &
-                                 chunks(chunk)%field%yvel0,             &
+                                 density0,          &
+                                 energy0,           &
+                                 xvel0,             &
+                                 yvel0,             &
                                  number_of_states,                      &
                                  state_density,                         &
                                  state_energy,                          &

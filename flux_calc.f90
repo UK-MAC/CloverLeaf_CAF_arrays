@@ -47,12 +47,12 @@ SUBROUTINE flux_calc()
                             dt,                              &
                             chunks(c)%field%xarea,           &
                             chunks(c)%field%yarea,           &
-                            chunks(c)%field%xvel0,           &
-                            chunks(c)%field%yvel0,           &
-                            chunks(c)%field%xvel1,           &
-                            chunks(c)%field%yvel1,           &
-                            chunks(c)%field%vol_flux_x,      &
-                            chunks(c)%field%vol_flux_y       )
+                            xvel0,           &
+                            yvel0,           &
+                            xvel1,           &
+                            yvel1,           &
+                            vol_flux_x,      &
+                            vol_flux_y       )
       ELSEIF(use_C_kernels)THEN
         CALL flux_calc_kernel_c(chunks(c)%field%x_min,       &
                             chunks(c)%field%x_max,           &
@@ -61,12 +61,12 @@ SUBROUTINE flux_calc()
                             dt,                              &
                             chunks(c)%field%xarea,           &
                             chunks(c)%field%yarea,           &
-                            chunks(c)%field%xvel0,           &
-                            chunks(c)%field%yvel0,           &
-                            chunks(c)%field%xvel1,           &
-                            chunks(c)%field%yvel1,           &
-                            chunks(c)%field%vol_flux_x,      &
-                            chunks(c)%field%vol_flux_y       )
+                            xvel0,           &
+                            yvel0,           &
+                            xvel1,           &
+                            yvel1,           &
+                            vol_flux_x,      &
+                            vol_flux_y       )
       ENDIF
 
     ENDIF

@@ -45,21 +45,21 @@ SUBROUTINE update_halo(fields,depth)
                                 chunks(c)%field%y_min,          &
                                 chunks(c)%field%y_max,          &
                                 chunks(c)%chunk_neighbours,     &
-                                chunks(c)%field%density0,       &
-                                chunks(c)%field%energy0,        &
-                                chunks(c)%field%pressure,       &
-                                chunks(c)%field%viscosity,      &
-                                chunks(c)%field%soundspeed,     &
-                                chunks(c)%field%density1,       &
-                                chunks(c)%field%energy1,        &
-                                chunks(c)%field%xvel0,          &
-                                chunks(c)%field%yvel0,          &
-                                chunks(c)%field%xvel1,          &
-                                chunks(c)%field%yvel1,          &
-                                chunks(c)%field%vol_flux_x,     &
-                                chunks(c)%field%vol_flux_y,     &
-                                chunks(c)%field%mass_flux_x,    &
-                                chunks(c)%field%mass_flux_y,    &
+                                density0,       &
+                                energy0,        &
+                                pressure,       &
+                                viscosity,      &
+                                soundspeed,     &
+                                density1,       &
+                                energy1,        &
+                                xvel0,          &
+                                yvel0,          &
+                                xvel1,          &
+                                yvel1,          &
+                                vol_flux_x,     &
+                                vol_flux_y,     &
+                                mass_flux_x,    &
+                                mass_flux_y,    &
                                 fields,                         &
                                 depth                           )
       ELSEIF(use_C_kernels)THEN
@@ -68,21 +68,21 @@ SUBROUTINE update_halo(fields,depth)
                                 chunks(c)%field%y_min,          &
                                 chunks(c)%field%y_max,          &
                                 chunks(c)%chunk_neighbours,     &
-                                chunks(c)%field%density0,       &
-                                chunks(c)%field%energy0,        &
-                                chunks(c)%field%pressure,       &
-                                chunks(c)%field%viscosity,      &
-                                chunks(c)%field%soundspeed,     &
-                                chunks(c)%field%density1,       &
-                                chunks(c)%field%energy1,        &
-                                chunks(c)%field%xvel0,          &
-                                chunks(c)%field%yvel0,          &
-                                chunks(c)%field%xvel1,          &
-                                chunks(c)%field%yvel1,          &
-                                chunks(c)%field%vol_flux_x,     &
-                                chunks(c)%field%vol_flux_y,     &
-                                chunks(c)%field%mass_flux_x,    &
-                                chunks(c)%field%mass_flux_y,    &
+                                density0,       &
+                                energy0,        &
+                                pressure,       &
+                                viscosity,      &
+                                soundspeed,     &
+                                density1,       &
+                                energy1,        &
+                                xvel0,          &
+                                yvel0,          &
+                                xvel1,          &
+                                yvel1,          &
+                                vol_flux_x,     &
+                                vol_flux_y,     &
+                                mass_flux_x,    &
+                                mass_flux_y,    &
                                 fields,                         &
                                 depth                           )
       ENDIF

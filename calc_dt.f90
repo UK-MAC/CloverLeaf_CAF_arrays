@@ -65,13 +65,13 @@ SUBROUTINE calc_dt(chunk,local_dt,local_control,xl_pos,yl_pos,jldt,kldt)
                         chunks(chunk)%field%celldx,    &
                         chunks(chunk)%field%celldy,    &
                         chunks(chunk)%field%volume,    &
-                        chunks(chunk)%field%density0,  &
-                        chunks(chunk)%field%energy0,   &
-                        chunks(chunk)%field%pressure,  &
-                        chunks(chunk)%field%viscosity, &
-                        chunks(chunk)%field%soundspeed,&
-                        chunks(chunk)%field%xvel0,     &
-                        chunks(chunk)%field%yvel0,     &
+                        density0,  &
+                        energy0,   &
+                        pressure,  &
+                        viscosity, &
+                        soundspeed,&
+                        xvel0,     &
+                        yvel0,     &
                         chunks(chunk)%field%work_array1,&
                         local_dt,                      &
                         l_control,                     &
@@ -101,13 +101,13 @@ SUBROUTINE calc_dt(chunk,local_dt,local_control,xl_pos,yl_pos,jldt,kldt)
                         chunks(chunk)%field%celldx,    &
                         chunks(chunk)%field%celldy,    &
                         chunks(chunk)%field%volume,    &
-                        chunks(chunk)%field%density0,  &
-                        chunks(chunk)%field%energy0,   &
-                        chunks(chunk)%field%pressure,  &
-                        chunks(chunk)%field%viscosity, &
-                        chunks(chunk)%field%soundspeed,&
-                        chunks(chunk)%field%xvel0,     &
-                        chunks(chunk)%field%yvel0,     &
+                        density0,  &
+                        energy0,   &
+                        pressure,  &
+                        viscosity, &
+                        soundspeed,&
+                        xvel0,     &
+                        yvel0,     &
                         chunks(chunk)%field%work_array1,&
                         local_dt,                      &
                         l_control,                     &

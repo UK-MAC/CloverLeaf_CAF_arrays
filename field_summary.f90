@@ -61,11 +61,11 @@ SUBROUTINE field_summary()
                                   chunks(c)%field%y_min,                   &
                                   chunks(c)%field%y_max,                   &
                                   chunks(c)%field%volume,                  &
-                                  chunks(c)%field%density0,                &
-                                  chunks(c)%field%energy0,                 &
-                                  chunks(c)%field%pressure,                &
-                                  chunks(c)%field%xvel0,                   &
-                                  chunks(c)%field%yvel0,                   &
+                                  density0,                &
+                                  energy0,                 &
+                                  pressure,                &
+                                  xvel0,                   &
+                                  yvel0,                   &
                                   vol,mass,ie,ke,press                     )
       ENDIF
     ENDDO
@@ -77,11 +77,11 @@ SUBROUTINE field_summary()
                                   chunks(c)%field%y_min,                   &
                                   chunks(c)%field%y_max,                   &
                                   chunks(c)%field%volume,                  &
-                                  chunks(c)%field%density0,                &
-                                  chunks(c)%field%energy0,                 &
-                                  chunks(c)%field%pressure,                &
-                                  chunks(c)%field%xvel0,                   &
-                                  chunks(c)%field%yvel0,                   &
+                                  density0,                &
+                                  energy0,                 &
+                                  pressure,                &
+                                  xvel0,                   &
+                                  yvel0,                   &
                                   vol,mass,ie,ke,press                     )
       ENDIF
     ENDDO

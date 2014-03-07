@@ -54,7 +54,7 @@ SUBROUTINE start
 
   CALL clover_get_num_chunks(number_of_chunks)
 
-  ALLOCATE(chunks(1:chunks_per_task)[*])
+  ALLOCATE(chunks(1:chunks_per_task))
 
   ALLOCATE(left(1:chunks_per_task))
   ALLOCATE(right(1:chunks_per_task))

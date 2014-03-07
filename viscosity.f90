@@ -24,7 +24,7 @@ MODULE viscosity_module
 
 CONTAINS
 
-SUBROUTINE viscosity()
+SUBROUTINE viscosity_driver()
 
   USE clover_module
   USE viscosity_kernel_module
@@ -44,11 +44,11 @@ SUBROUTINE viscosity()
                             chunks(c)%field%y_max,                     &
                             chunks(c)%field%celldx,                    &
                             chunks(c)%field%celldy,                    &
-                            chunks(c)%field%density0,                  &
-                            chunks(c)%field%pressure,                  &
-                            chunks(c)%field%viscosity,                 &
-                            chunks(c)%field%xvel0,                     &
-                            chunks(c)%field%yvel0                      )
+                            density0,                  &
+                            pressure,                  &
+                            viscosity,                 &
+                            xvel0,                     &
+                            yvel0                      )
       ELSEIF(use_C_kernels)THEN
         CALL viscosity_kernel_c(chunks(c)%field%x_min,                 &
                             chunks(c)%field%x_max,                     &
@@ -56,17 +56,17 @@ SUBROUTINE viscosity()
                             chunks(c)%field%y_max,                     &
                             chunks(c)%field%celldx,                    &
                             chunks(c)%field%celldy,                    &
-                            chunks(c)%field%density0,                  &
-                            chunks(c)%field%pressure,                  &
-                            chunks(c)%field%viscosity,                 &
-                            chunks(c)%field%xvel0,                     &
-                            chunks(c)%field%yvel0                      )
+                            density0,                  &
+                            pressure,                  &
+                            viscosity,                 &
+                            xvel0,                     &
+                            yvel0                      )
       ENDIF
 
     ENDIF
 
   ENDDO
 
-END SUBROUTINE viscosity
+END SUBROUTINE viscosity_driver
 
 END MODULE viscosity_module

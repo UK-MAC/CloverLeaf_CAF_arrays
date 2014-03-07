@@ -44,12 +44,12 @@ SUBROUTINE advec_cell_driver(chunk,sweep_number,dir)
                            chunks(chunk)%field%vertexdx,              &
                            chunks(chunk)%field%vertexdy,              &
                            chunks(chunk)%field%volume,                &
-                           chunks(chunk)%field%density1,              &
-                           chunks(chunk)%field%energy1,               &
-                           chunks(chunk)%field%mass_flux_x,           &
-                           chunks(chunk)%field%vol_flux_x,            &
-                           chunks(chunk)%field%mass_flux_y,           &
-                           chunks(chunk)%field%vol_flux_y,            &
+                           density1,              &
+                           energy1,               &
+                           mass_flux_x,           &
+                           vol_flux_x,            &
+                           mass_flux_y,           &
+                           vol_flux_y,            &
                            chunks(chunk)%field%work_array1,           &
                            chunks(chunk)%field%work_array2,           &
                            chunks(chunk)%field%work_array3,           &
@@ -67,12 +67,12 @@ SUBROUTINE advec_cell_driver(chunk,sweep_number,dir)
                            chunks(chunk)%field%vertexdx,              &
                            chunks(chunk)%field%vertexdy,              &
                            chunks(chunk)%field%volume,                &
-                           chunks(chunk)%field%density1,              &
-                           chunks(chunk)%field%energy1,               &
-                           chunks(chunk)%field%mass_flux_x,           &
-                           chunks(chunk)%field%vol_flux_x,            &
-                           chunks(chunk)%field%mass_flux_y,           &
-                           chunks(chunk)%field%vol_flux_y,            &
+                           density1,              &
+                           energy1,               &
+                           mass_flux_x,           &
+                           vol_flux_x,            &
+                           mass_flux_y,           &
+                           vol_flux_y,            &
                            chunks(chunk)%field%work_array1,           &
                            chunks(chunk)%field%work_array2,           &
                            chunks(chunk)%field%work_array3,           &

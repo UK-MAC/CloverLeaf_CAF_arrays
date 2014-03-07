@@ -60,16 +60,16 @@ SUBROUTINE PdV(predict)
                       chunks(c)%field%xarea,      &
                       chunks(c)%field%yarea,      &
                       chunks(c)%field%volume ,    &
-                      chunks(c)%field%density0,   &
-                      chunks(c)%field%density1,   &
-                      chunks(c)%field%energy0,    &
-                      chunks(c)%field%energy1,    &
-                      chunks(c)%field%pressure,   &
-                      chunks(c)%field%viscosity,  &
-                      chunks(c)%field%xvel0,      &
-                      chunks(c)%field%xvel1,      &
-                      chunks(c)%field%yvel0,      &
-                      chunks(c)%field%yvel1,      &
+                      density0,   &
+                      density1,   &
+                      energy0,    &
+                      energy1,    &
+                      pressure,   &
+                      viscosity,  &
+                      xvel0,      &
+                      xvel1,      &
+                      yvel0,      &
+                      yvel1,      &
                       chunks(c)%field%work_array1 )
       ELSEIF(use_C_kernels)THEN
 
@@ -88,16 +88,16 @@ SUBROUTINE PdV(predict)
                       chunks(c)%field%xarea,      &
                       chunks(c)%field%yarea,      &
                       chunks(c)%field%volume ,    &
-                      chunks(c)%field%density0,   &
-                      chunks(c)%field%density1,   &
-                      chunks(c)%field%energy0,    &
-                      chunks(c)%field%energy1,    &
-                      chunks(c)%field%pressure,   &
-                      chunks(c)%field%viscosity,  &
-                      chunks(c)%field%xvel0,      &
-                      chunks(c)%field%xvel1,      &
-                      chunks(c)%field%yvel0,      &
-                      chunks(c)%field%yvel1,      &
+                      density0,   &
+                      density1,   &
+                      energy0,    &
+                      energy1,    &
+                      pressure,   &
+                      viscosity,  &
+                      xvel0,      &
+                      xvel1,      &
+                      yvel0,      &
+                      yvel1,      &
                       chunks(c)%field%work_array1 )
       ENDIF
     ENDIF

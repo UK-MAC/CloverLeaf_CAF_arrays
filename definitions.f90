@@ -118,15 +118,6 @@ MODULE definitions_module
    INTEGER         :: jdt,kdt
 
    TYPE field_type
-     REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: density0,density1
-     REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: energy0,energy1
-     REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: pressure
-     REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: viscosity
-     REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: soundspeed
-     REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: xvel0,xvel1
-     REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: yvel0,yvel1
-     REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: vol_flux_x,mass_flux_x
-     REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: vol_flux_y,mass_flux_y
      REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: work_array1 !node_flux, stepbymass, volume_change, pre_vol
      REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: work_array2 !node_mass_post, post_vol
      REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: work_array3 !node_mass_pre,pre_mass
@@ -164,31 +155,47 @@ MODULE definitions_module
 
    END TYPE field_type
    
-   TYPE chunk_type
+    TYPE chunk_type
 
-     INTEGER         :: task   !caf image minus 1
+        INTEGER         :: task   !caf image minus 1
 
-     INTEGER         :: chunk_neighbours(4) ! Chunks, not tasks, so we can overload in the future
+        INTEGER         :: chunk_neighbours(4) ! Chunks, not tasks, so we can overload in the future
 
-     ! Idealy, create an array to hold the buffers for each field so a commuincation only needs
-     !  one send and one receive per face, rather than per field.
-     ! If chunks are overloaded, i.e. more chunks than tasks, might need to pack for a task to task comm 
-     !  rather than a chunk to chunk comm. See how performance is at high core counts before deciding
-     !REAL(KIND=8),ALLOCATABLE:: left_rcv_buffer(:),right_rcv_buffer(:),bottom_rcv_buffer(:),top_rcv_buffer(:)
-     !REAL(KIND=8),ALLOCATABLE:: left_snd_buffer(:),right_snd_buffer(:),bottom_snd_buffer(:),top_snd_buffer(:)
+        ! Idealy, create an array to hold the buffers for each field so a commuincation only needs
+        !  one send and one receive per face, rather than per field.
+        ! If chunks are overloaded, i.e. more chunks than tasks, might need to pack for a task to task comm 
+        !  rather than a chunk to chunk comm. See how performance is at high core counts before deciding
+        !REAL(KIND=8),ALLOCATABLE:: left_rcv_buffer(:),right_rcv_buffer(:),bottom_rcv_buffer(:),top_rcv_buffer(:)
+        !REAL(KIND=8),ALLOCATABLE:: left_snd_buffer(:),right_snd_buffer(:),bottom_snd_buffer(:),top_snd_buffer(:)
 #ifdef LOCAL_SYNC
-     INTEGER, ALLOCATABLE:: imageNeighbours(:)
+        INTEGER, ALLOCATABLE:: imageNeighbours(:)
 #endif
 
-     TYPE(field_type):: field
+        TYPE(field_type):: field
 
-  END TYPE chunk_type
+    END TYPE chunk_type
 
-  REAL(KIND=8),ALLOCATABLE    :: totals(:)[:]
+    REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: density0[:]
+    REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: density1[:]
+    REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: energy0[:]
+    REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: energy1[:]
+    REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: pressure[:]
+    REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: viscosity[:]
+    REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: soundspeed[:]
+    REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: xvel0[:]
+    REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: xvel1[:]
+    REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: yvel0[:]
+    REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: yvel1[:]
+    REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: vol_flux_x[:]
+    REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: mass_flux_x[:]
+    REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: vol_flux_y[:]
+    REAL(KIND=8),    DIMENSION(:,:), ALLOCATABLE :: mass_flux_y[:]
 
-  TYPE(chunk_type),  ALLOCATABLE       :: chunks(:)[:]
-  INTEGER                              :: number_of_chunks
+    REAL(KIND=8),ALLOCATABLE    :: totals(:)[:]
 
-  TYPE(grid_type)                      :: grid
+    TYPE(chunk_type),  ALLOCATABLE       :: chunks(:)
+    INTEGER                              :: number_of_chunks
+
+    TYPE(grid_type)                      :: grid
 
 END MODULE definitions_module
