@@ -152,72 +152,79 @@ SUBROUTINE clover_decompose(x_cells,y_cells,left,right,bottom,top)
 
   ! Set up chunk mesh ranges and chunk connectivity
 
-  add_x_prev=0
-  add_y_prev=0
-  chunk=1
-  DO cy=1,chunk_y
-    DO cx=1,chunk_x
-      add_x=0
-      add_y=0
-      IF(cx.LE.mod_x)add_x=1
-      IF(cy.LE.mod_y)add_y=1
-      left(chunk)=(cx-1)*delta_x+1+add_x_prev
-      right(chunk)=left(chunk)+delta_x-1+add_x
-      bottom(chunk)=(cy-1)*delta_y+1+add_y_prev
-      top(chunk)=bottom(chunk)+delta_y-1+add_y
-      chunks(chunk)%chunk_neighbours(chunk_left)=chunk_x*(cy-1)+cx-1
-      chunks(chunk)%chunk_neighbours(chunk_right)=chunk_x*(cy-1)+cx+1
-      chunks(chunk)%chunk_neighbours(chunk_bottom)=chunk_x*(cy-2)+cx
-      chunks(chunk)%chunk_neighbours(chunk_top)=chunk_x*(cy)+cx
-      IF(cx.EQ.1)chunks(chunk)%chunk_neighbours(chunk_left)=external_face
-      IF(cx.EQ.chunk_x)chunks(chunk)%chunk_neighbours(chunk_right)=external_face
-      IF(cy.EQ.1)chunks(chunk)%chunk_neighbours(chunk_bottom)=external_face
-      IF(cy.EQ.chunk_y)chunks(chunk)%chunk_neighbours(chunk_top)=external_face
-      IF(cx.LE.mod_x)add_x_prev=add_x_prev+1
+    add_x_prev=0
+    add_y_prev=0
+    chunk=1
+    DO cy=1,chunk_y
+        DO cx=1,chunk_x
+            add_x=0
+            add_y=0
+            IF(cx.LE.mod_x)add_x=1
+            IF(cy.LE.mod_y)add_y=1
+
+            IF (chunk .EQ. parallel%task+1) THEN
+
+                left(1)   = (cx-1)*delta_x+1+add_x_prev
+                right(1)  = left(1)+delta_x-1+add_x
+                bottom(1) = (cy-1)*delta_y+1+add_y_prev
+                top(1)    = bottom(1)+delta_y-1+add_y
+
+                chunks(1)%chunk_neighbours(chunk_left)=chunk_x*(cy-1)+cx-1
+                chunks(1)%chunk_neighbours(chunk_right)=chunk_x*(cy-1)+cx+1
+                chunks(1)%chunk_neighbours(chunk_bottom)=chunk_x*(cy-2)+cx
+                chunks(1)%chunk_neighbours(chunk_top)=chunk_x*(cy)+cx
+
+                IF(cx.EQ.1)       chunks(1)%chunk_neighbours(chunk_left)=external_face
+                IF(cx.EQ.chunk_x) chunks(1)%chunk_neighbours(chunk_right)=external_face
+                IF(cy.EQ.1)       chunks(1)%chunk_neighbours(chunk_bottom)=external_face
+                IF(cy.EQ.chunk_y) chunks(1)%chunk_neighbours(chunk_top)=external_face
 
 #ifdef LOCAL_SYNC
-      numNeighbours=0
-      IF (chunks(chunk)%chunk_neighbours(chunk_left).NE.external_face) THEN
-          numNeighbours = numNeighbours +1
-      ENDIF
-      IF (chunks(chunk)%chunk_neighbours(chunk_right).NE.external_face) THEN
-         numNeighbours = numNeighbours +1
-      ENDIF
-      IF (chunks(chunk)%chunk_neighbours(chunk_top).NE.external_face) THEN
-         numNeighbours = numNeighbours +1
-      ENDIF
-      IF (chunks(chunk)%chunk_neighbours(chunk_bottom).NE.external_face) THEN
-         numNeighbours = numNeighbours +1
-      ENDIF
-      ALLOCATE(chunks(chunk)%imageNeighbours(numNeighbours))
+                numNeighbours=0
+                IF (chunks(1)%chunk_neighbours(chunk_left).NE.external_face) THEN
+                    numNeighbours = numNeighbours +1
+                ENDIF
+                IF (chunks(1)%chunk_neighbours(chunk_right).NE.external_face) THEN
+                   numNeighbours = numNeighbours +1
+                ENDIF
+                IF (chunks(1)%chunk_neighbours(chunk_top).NE.external_face) THEN
+                   numNeighbours = numNeighbours +1
+                ENDIF
+                IF (chunks(1)%chunk_neighbours(chunk_bottom).NE.external_face) THEN
+                   numNeighbours = numNeighbours +1
+                ENDIF
+                ALLOCATE(chunks(chunk)%imageNeighbours(numNeighbours))
 
-      !caf:may need to update this when multiple chunks per image so that the image is recorded correctly 
-      IF (numNeighbours > 0) THEN
-         n=1
-         IF (chunks(chunk)%chunk_neighbours(chunk_left).NE.external_face) THEN
-            chunks(chunk)%imageNeighbours(n) = chunks(chunk)%chunk_neighbours(chunk_left)
-            n=n+1
-         ENDIF
-         IF (chunks(chunk)%chunk_neighbours(chunk_right).NE.external_face) THEN
-            chunks(chunk)%imageNeighbours(n) = chunks(chunk)%chunk_neighbours(chunk_right)
-            n=n+1
-         ENDIF
-         IF (chunks(chunk)%chunk_neighbours(chunk_top).NE.external_face) THEN
-            chunks(chunk)%imageNeighbours(n) = chunks(chunk)%chunk_neighbours(chunk_top)
-            n=n+1
-         ENDIF
-         IF (chunks(chunk)%chunk_neighbours(chunk_bottom).NE.external_face) THEN
-            chunks(chunk)%imageNeighbours(n) = chunks(chunk)%chunk_neighbours(chunk_bottom)
-            n=n+1
-         ENDIF
-      ENDIF
+                !caf:may need to update this when multiple chunks per image so that the image is recorded correctly 
+                IF (numNeighbours > 0) THEN
+                   n=1
+                   IF (chunks(1)%chunk_neighbours(chunk_left).NE.external_face) THEN
+                      chunks(1)%imageNeighbours(n) = chunks(1)%chunk_neighbours(chunk_left)
+                      n=n+1
+                   ENDIF
+                   IF (chunks(1)%chunk_neighbours(chunk_right).NE.external_face) THEN
+                      chunks(1)%imageNeighbours(n) = chunks(1)%chunk_neighbours(chunk_right)
+                      n=n+1
+                   ENDIF
+                   IF (chunks(1)%chunk_neighbours(chunk_top).NE.external_face) THEN
+                      chunks(1)%imageNeighbours(n) = chunks(1)%chunk_neighbours(chunk_top)
+                      n=n+1
+                   ENDIF
+                   IF (chunks(1)%chunk_neighbours(chunk_bottom).NE.external_face) THEN
+                      chunks(1)%imageNeighbours(n) = chunks(1)%chunk_neighbours(chunk_bottom)
+                      n=n+1
+                   ENDIF
+                ENDIF
 #endif
 
-      chunk=chunk+1
+            ENDIF
+
+            IF(cx.LE.mod_x)add_x_prev=add_x_prev+1
+            chunk=chunk+1
+        ENDDO
+        add_x_prev=0
+        IF(cy.LE.mod_y)add_y_prev=add_y_prev+1
     ENDDO
-    add_x_prev=0
-    IF(cy.LE.mod_y)add_y_prev=add_y_prev+1
-  ENDDO
 
   IF(parallel%boss)THEN
     WRITE(g_out,*)
@@ -268,7 +275,7 @@ SUBROUTINE clover_exchange(fields,depth)
     ! Also, not packing all fields for each communication, doing one at a time
 
     ! the chunk number which the executing task is responsible for
-    chunk = parallel%task+1
+    chunk = 1
 
     left_neighbour = chunks(chunk)%chunk_neighbours(chunk_left)
     right_neighbour = chunks(chunk)%chunk_neighbours(chunk_right)
@@ -291,17 +298,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(left_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the left of the current image
-          chunks(left_neighbour)[left_neighbour]%field%density0(                                                 &
-                   chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,      &
-                   chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth ) =    &
+          chunks(chunk)[left_neighbour]%field%density0(                                                 &
+                   chunks(chunk)%field%x_max+xinc+1:chunks(chunk)%field%x_max+xinc+depth,      &
+                   chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth ) =    &
              chunks(chunk)%field%density0(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
                                           chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
         IF(right_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the right of the current image
-          chunks(right_neighbour)[right_neighbour]%field%density0(                                              &
-                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,              &
-                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =   &
+          chunks(chunk)[right_neighbour]%field%density0(                                              &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_min-1,              &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =   &
               chunks(chunk)%field%density0(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,         &
                                            chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
@@ -315,17 +322,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(bottom_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(bottom_neighbour)[bottom_neighbour]%field%density0(                                             &
-                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
-                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+          chunks(chunk)[bottom_neighbour]%field%density0(                                             &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,    &
+                  chunks(chunk)%field%y_max+yinc+1:chunks(chunk)%field%y_max+yinc+depth) = &
              chunks(chunk)%field%density0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
                                           chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
         ENDIF
         IF(top_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(top_neighbour)[top_neighbour]%field%density0(                                                  &
-                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,         &
-                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                &
+          chunks(chunk)[top_neighbour]%field%density0(                                                  &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,         &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_min-1) =                &
              chunks(chunk)%field%density0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
                                           chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
         ENDIF
@@ -338,17 +345,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(left_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the left of the current image
-          chunks(left_neighbour)[left_neighbour]%field%density1(                                                 &
-                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,       &
-                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =      &
+          chunks(chunk)[left_neighbour]%field%density1(                                                 &
+                  chunks(chunk)%field%x_max+xinc+1:chunks(chunk)%field%x_max+xinc+depth,       &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =      &
              chunks(chunk)%field%density1(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
                                           chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
         IF(right_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the right of the current image
-          chunks(right_neighbour)[right_neighbour]%field%density1(                                              &
-                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,              &
-                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =   &
+          chunks(chunk)[right_neighbour]%field%density1(                                              &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_min-1,              &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =   &
              chunks(chunk)%field%density1(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
                                           chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
@@ -362,17 +369,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(bottom_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(bottom_neighbour)[bottom_neighbour]%field%density1(                                             &
-                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
-                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+          chunks(chunk)[bottom_neighbour]%field%density1(                                             &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,    &
+                  chunks(chunk)%field%y_max+yinc+1:chunks(chunk)%field%y_max+yinc+depth) = &
              chunks(chunk)%field%density1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
                                           chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
         ENDIF
         IF(top_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(top_neighbour)[top_neighbour]%field%density1(                                                  &
-                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,         &
-                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                &
+          chunks(chunk)[top_neighbour]%field%density1(                                                  &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,         &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_min-1) =                &
              chunks(chunk)%field%density1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
                                           chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
         ENDIF
@@ -385,17 +392,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(left_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the left of the current image
-          chunks(left_neighbour)[left_neighbour]%field%energy0(                                                 &
-                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,      &
-                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =     &
+          chunks(chunk)[left_neighbour]%field%energy0(                                                 &
+                  chunks(chunk)%field%x_max+xinc+1:chunks(chunk)%field%x_max+xinc+depth,      &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =     &
              chunks(chunk)%field%energy0(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
                                          chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
         IF(right_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the right of the current image
-          chunks(right_neighbour)[right_neighbour]%field%energy0(                                              &
-                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,             &
-                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =  &
+          chunks(chunk)[right_neighbour]%field%energy0(                                              &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_min-1,             &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =  &
              chunks(chunk)%field%energy0(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
                                          chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
@@ -409,17 +416,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(bottom_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(bottom_neighbour)[bottom_neighbour]%field%energy0(                                              &
-                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
-                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+          chunks(chunk)[bottom_neighbour]%field%energy0(                                              &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,    &
+                  chunks(chunk)%field%y_max+yinc+1:chunks(chunk)%field%y_max+yinc+depth) = &
              chunks(chunk)%field%energy0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,   &
                                          chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
         ENDIF
         IF(top_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(top_neighbour)[top_neighbour]%field%energy0(                                                  &
-                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,        &
-                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =               &
+          chunks(chunk)[top_neighbour]%field%energy0(                                                  &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,        &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_min-1) =               &
              chunks(chunk)%field%energy0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
                                          chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
         ENDIF
@@ -432,17 +439,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(left_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the left of the current image
-          chunks(left_neighbour)[left_neighbour]%field%energy1(                                                 &
-                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,      &
-                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =     &
+          chunks(chunk)[left_neighbour]%field%energy1(                                                 &
+                  chunks(chunk)%field%x_max+xinc+1:chunks(chunk)%field%x_max+xinc+depth,      &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =     &
              chunks(chunk)%field%energy1(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
                                          chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
         IF(right_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the right of the current image
-          chunks(right_neighbour)[right_neighbour]%field%energy1(                                              &
-                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,             &
-                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =  &
+          chunks(chunk)[right_neighbour]%field%energy1(                                              &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_min-1,             &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =  &
              chunks(chunk)%field%energy1(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
                                          chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
@@ -456,17 +463,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(bottom_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(bottom_neighbour)[bottom_neighbour]%field%energy1(                                              &
-                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
-                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+          chunks(chunk)[bottom_neighbour]%field%energy1(                                              &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,    &
+                  chunks(chunk)%field%y_max+yinc+1:chunks(chunk)%field%y_max+yinc+depth) = &
              chunks(chunk)%field%energy1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,   &
                                          chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
         ENDIF
         IF(top_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(top_neighbour)[top_neighbour]%field%energy1(                                                  &
-                   chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,       &
-                   chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =              &
+          chunks(chunk)[top_neighbour]%field%energy1(                                                  &
+                   chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,       &
+                   chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_min-1) =              &
              chunks(chunk)%field%energy1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
                                          chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
         ENDIF
@@ -479,17 +486,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(left_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the left of the current image
-          chunks(left_neighbour)[left_neighbour]%field%pressure(                                                 &
-                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,       &
-                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =      &
+          chunks(chunk)[left_neighbour]%field%pressure(                                                 &
+                  chunks(chunk)%field%x_max+xinc+1:chunks(chunk)%field%x_max+xinc+depth,       &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =      &
              chunks(chunk)%field%pressure(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
                                           chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
         IF(right_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the right of the current image
-          chunks(right_neighbour)[right_neighbour]%field%pressure(                                              &
-                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,              &
-                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =   &
+          chunks(chunk)[right_neighbour]%field%pressure(                                              &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_min-1,              &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =   &
              chunks(chunk)%field%pressure(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
                                           chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
@@ -503,17 +510,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(bottom_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(bottom_neighbour)[bottom_neighbour]%field%pressure(                                             &
-                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
-                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+          chunks(chunk)[bottom_neighbour]%field%pressure(                                             &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,    &
+                  chunks(chunk)%field%y_max+yinc+1:chunks(chunk)%field%y_max+yinc+depth) = &
              chunks(chunk)%field%pressure(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
                                           chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
         ENDIF
         IF(top_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(top_neighbour)[top_neighbour]%field%pressure(                                                  &
-                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,         &
-                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                &
+          chunks(chunk)[top_neighbour]%field%pressure(                                                  &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,         &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_min-1) =                &
              chunks(chunk)%field%pressure(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
                                           chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
         ENDIF
@@ -526,17 +533,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(left_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the left of the current image
-          chunks(left_neighbour)[left_neighbour]%field%viscosity(                                                 &
-                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,        &
-                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =       &
+          chunks(chunk)[left_neighbour]%field%viscosity(                                                 &
+                  chunks(chunk)%field%x_max+xinc+1:chunks(chunk)%field%x_max+xinc+depth,        &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =       &
              chunks(chunk)%field%viscosity(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
                                            chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
         IF(right_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the right of the current image
-          chunks(right_neighbour)[right_neighbour]%field%viscosity(                                              &
-                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,               &
-                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =    &
+          chunks(chunk)[right_neighbour]%field%viscosity(                                              &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_min-1,               &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =    &
              chunks(chunk)%field%viscosity(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
                                            chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
@@ -550,17 +557,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(bottom_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(bottom_neighbour)[bottom_neighbour]%field%viscosity(                                             &
-                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,     &
-                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =  &
+          chunks(chunk)[bottom_neighbour]%field%viscosity(                                             &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,     &
+                  chunks(chunk)%field%y_max+yinc+1:chunks(chunk)%field%y_max+yinc+depth) =  &
              chunks(chunk)%field%viscosity(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
                                            chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
         ENDIF
         IF(top_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(top_neighbour)[top_neighbour]%field%viscosity(                                                   &
-                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,           &
-                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                  &
+          chunks(chunk)[top_neighbour]%field%viscosity(                                                   &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,           &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_min-1) =                  &
              chunks(chunk)%field%viscosity(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
                                            chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
         ENDIF
@@ -573,17 +580,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(left_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the left of the current image
-          chunks(left_neighbour)[left_neighbour]%field%soundspeed(                                                 &
-                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,         &
-                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =        &
+          chunks(chunk)[left_neighbour]%field%soundspeed(                                                 &
+                  chunks(chunk)%field%x_max+xinc+1:chunks(chunk)%field%x_max+xinc+depth,         &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =        &
              chunks(chunk)%field%soundspeed(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
                                             chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
         IF(right_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the right of the current image
-          chunks(right_neighbour)[right_neighbour]%field%soundspeed(                                              &
-                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                &
-                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =     &
+          chunks(chunk)[right_neighbour]%field%soundspeed(                                              &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_min-1,                &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =     &
              chunks(chunk)%field%soundspeed(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
                                             chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
@@ -597,17 +604,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(bottom_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(bottom_neighbour)[bottom_neighbour]%field%soundspeed(                                             &
-                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,      &
-                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =   &
+          chunks(chunk)[bottom_neighbour]%field%soundspeed(                                             &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,      &
+                  chunks(chunk)%field%y_max+yinc+1:chunks(chunk)%field%y_max+yinc+depth) =   &
              chunks(chunk)%field%soundspeed(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
                                             chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
         ENDIF
         IF(top_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(top_neighbour)[top_neighbour]%field%soundspeed(                                                   &
-                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,            &
-                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                   &
+          chunks(chunk)[top_neighbour]%field%soundspeed(                                                   &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,            &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_min-1) =                   &
              chunks(chunk)%field%soundspeed(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
                                             chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
         ENDIF
@@ -620,17 +627,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(left_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the left of the current image
-          chunks(left_neighbour)[left_neighbour]%field%xvel0(                                                 &
-                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,    &
-                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =   &
+          chunks(chunk)[left_neighbour]%field%xvel0(                                                 &
+                  chunks(chunk)%field%x_max+xinc+1:chunks(chunk)%field%x_max+xinc+depth,    &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =   &
              chunks(chunk)%field%xvel0(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
         IF(right_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the right of the current image
-          chunks(right_neighbour)[right_neighbour]%field%xvel0(                                               &
-                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,            &
-                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) = &
+          chunks(chunk)[right_neighbour]%field%xvel0(                                               &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_min-1,            &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) = &
              chunks(chunk)%field%xvel0(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,           &
                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
@@ -644,17 +651,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(bottom_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(bottom_neighbour)[bottom_neighbour]%field%xvel0(                                                &
-                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
-                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+          chunks(chunk)[bottom_neighbour]%field%xvel0(                                                &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,    &
+                  chunks(chunk)%field%y_max+yinc+1:chunks(chunk)%field%y_max+yinc+depth) = &
              chunks(chunk)%field%xvel0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,     &
                                        chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
         ENDIF
         IF(top_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(top_neighbour)[top_neighbour]%field%xvel0(                                                  &
-                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,      &
-                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =             &
+          chunks(chunk)[top_neighbour]%field%xvel0(                                                  &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,      &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_min-1) =             &
              chunks(chunk)%field%xvel0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
                                        chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
         ENDIF
@@ -667,17 +674,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(left_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the left of the current image
-          chunks(left_neighbour)[left_neighbour]%field%xvel1(                                                 &
-                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,    &
-                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =   &
+          chunks(chunk)[left_neighbour]%field%xvel1(                                                 &
+                  chunks(chunk)%field%x_max+xinc+1:chunks(chunk)%field%x_max+xinc+depth,    &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =   &
              chunks(chunk)%field%xvel1(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
         IF(right_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the right of the current image
-          chunks(right_neighbour)[right_neighbour]%field%xvel1(                                               &
-                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,            &
-                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) = &
+          chunks(chunk)[right_neighbour]%field%xvel1(                                               &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_min-1,            &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) = &
              chunks(chunk)%field%xvel1(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,           &
                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
@@ -691,17 +698,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(bottom_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(bottom_neighbour)[bottom_neighbour]%field%xvel1(                                                &
-                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
-                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+          chunks(chunk)[bottom_neighbour]%field%xvel1(                                                &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,    &
+                  chunks(chunk)%field%y_max+yinc+1:chunks(chunk)%field%y_max+yinc+depth) = &
              chunks(chunk)%field%xvel1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,     &
                                        chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
         ENDIF
         IF(top_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(top_neighbour)[top_neighbour]%field%xvel1(                                                  &
-                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,      &
-                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =             &
+          chunks(chunk)[top_neighbour]%field%xvel1(                                                  &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,      &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_min-1) =             &
              chunks(chunk)%field%xvel1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
                                        chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
         ENDIF
@@ -714,17 +721,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(left_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the left of the current image
-          chunks(left_neighbour)[left_neighbour]%field%yvel0(                                                 &
-                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,    &
-                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =   &
+          chunks(chunk)[left_neighbour]%field%yvel0(                                                 &
+                  chunks(chunk)%field%x_max+xinc+1:chunks(chunk)%field%x_max+xinc+depth,    &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =   &
              chunks(chunk)%field%yvel0(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
         IF(right_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the right of the current image
-          chunks(right_neighbour)[right_neighbour]%field%yvel0(                                               &
-                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,            &
-                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) = &
+          chunks(chunk)[right_neighbour]%field%yvel0(                                               &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_min-1,            &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) = &
              chunks(chunk)%field%yvel0(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,           &
                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
@@ -738,17 +745,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(bottom_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(bottom_neighbour)[bottom_neighbour]%field%yvel0(                                                &
-                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
-                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+          chunks(chunk)[bottom_neighbour]%field%yvel0(                                                &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,    &
+                  chunks(chunk)%field%y_max+yinc+1:chunks(chunk)%field%y_max+yinc+depth) = &
              chunks(chunk)%field%yvel0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,     &
                                        chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
         ENDIF
         IF(top_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(top_neighbour)[top_neighbour]%field%yvel0(                                                  &
-                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,      &
-                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =             &
+          chunks(chunk)[top_neighbour]%field%yvel0(                                                  &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,      &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_min-1) =             &
              chunks(chunk)%field%yvel0(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
                                        chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
         ENDIF
@@ -761,17 +768,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(left_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the left of the current image
-          chunks(left_neighbour)[left_neighbour]%field%yvel1(                                                 &
-                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,    &
-                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =   &
+          chunks(chunk)[left_neighbour]%field%yvel1(                                                 &
+                  chunks(chunk)%field%x_max+xinc+1:chunks(chunk)%field%x_max+xinc+depth,    &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =   &
              chunks(chunk)%field%yvel1(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
         IF(right_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the right of the current image
-          chunks(right_neighbour)[right_neighbour]%field%yvel1(                                               &
-                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,            &
-                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) = &
+          chunks(chunk)[right_neighbour]%field%yvel1(                                               &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_min-1,            &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) = &
              chunks(chunk)%field%yvel1(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,           &
                                        chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
@@ -785,17 +792,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(bottom_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(bottom_neighbour)[bottom_neighbour]%field%yvel1(                                                &
-                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,    &
-                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) = &
+          chunks(chunk)[bottom_neighbour]%field%yvel1(                                                &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,    &
+                  chunks(chunk)%field%y_max+yinc+1:chunks(chunk)%field%y_max+yinc+depth) = &
              chunks(chunk)%field%yvel1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,     &
                                        chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
         ENDIF
         IF(top_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(top_neighbour)[top_neighbour]%field%yvel1(                                                  &
-                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,      &
-                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =             &
+          chunks(chunk)[top_neighbour]%field%yvel1(                                                  &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,      &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_min-1) =             &
              chunks(chunk)%field%yvel1(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
                                        chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
         ENDIF
@@ -808,17 +815,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(left_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the left of the current image
-          chunks(left_neighbour)[left_neighbour]%field%vol_flux_x(                                                 &
-                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,         &
-                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =        &
+          chunks(chunk)[left_neighbour]%field%vol_flux_x(                                                 &
+                  chunks(chunk)%field%x_max+xinc+1:chunks(chunk)%field%x_max+xinc+depth,         &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =        &
              chunks(chunk)%field%vol_flux_x(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
                                             chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
         IF(right_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the right of the current image
-          chunks(right_neighbour)[right_neighbour]%field%vol_flux_x(                                              &
-                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                &
-                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =     &
+          chunks(chunk)[right_neighbour]%field%vol_flux_x(                                              &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_min-1,                &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =     &
              chunks(chunk)%field%vol_flux_x(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
                                             chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
@@ -832,17 +839,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(bottom_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(bottom_neighbour)[bottom_neighbour]%field%vol_flux_x(                                             &
-                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,      &
-                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =   &
+          chunks(chunk)[bottom_neighbour]%field%vol_flux_x(                                             &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,      &
+                  chunks(chunk)%field%y_max+yinc+1:chunks(chunk)%field%y_max+yinc+depth) =   &
              chunks(chunk)%field%vol_flux_x(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
                                             chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
         ENDIF
         IF(top_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(top_neighbour)[top_neighbour]%field%vol_flux_x(                                                  &
-                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,           &
-                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                  &
+          chunks(chunk)[top_neighbour]%field%vol_flux_x(                                                  &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,           &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_min-1) =                  &
              chunks(chunk)%field%vol_flux_x(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
                                             chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
         ENDIF
@@ -855,17 +862,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(left_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the left of the current image
-          chunks(left_neighbour)[left_neighbour]%field%vol_flux_y(                                                 &
-                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,         &
-                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =        &
+          chunks(chunk)[left_neighbour]%field%vol_flux_y(                                                 &
+                  chunks(chunk)%field%x_max+xinc+1:chunks(chunk)%field%x_max+xinc+depth,         &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =        &
              chunks(chunk)%field%vol_flux_y(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
                                             chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
         IF(right_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the right of the current image
-          chunks(right_neighbour)[right_neighbour]%field%vol_flux_y(                                              &
-                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                &
-                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =     &
+          chunks(chunk)[right_neighbour]%field%vol_flux_y(                                              &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_min-1,                &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =     &
              chunks(chunk)%field%vol_flux_y(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
                                             chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
@@ -879,17 +886,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(bottom_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(bottom_neighbour)[bottom_neighbour]%field%vol_flux_y(                                             &
-                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,      &
-                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =   &
+          chunks(chunk)[bottom_neighbour]%field%vol_flux_y(                                             &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,      &
+                  chunks(chunk)%field%y_max+yinc+1:chunks(chunk)%field%y_max+yinc+depth) =   &
              chunks(chunk)%field%vol_flux_y(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
                                             chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
         ENDIF
         IF(top_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(top_neighbour)[top_neighbour]%field%vol_flux_y(                                                  &
-                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,           &
-                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                  &
+          chunks(chunk)[top_neighbour]%field%vol_flux_y(                                                  &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,           &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_min-1) =                  &
              chunks(chunk)%field%vol_flux_y(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
                                             chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
         ENDIF
@@ -902,17 +909,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(left_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the left of the current image
-          chunks(left_neighbour)[left_neighbour]%field%mass_flux_x(                                                 &
-                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,          &
-                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =         &
+          chunks(chunk)[left_neighbour]%field%mass_flux_x(                                                 &
+                  chunks(chunk)%field%x_max+xinc+1:chunks(chunk)%field%x_max+xinc+depth,          &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =         &
              chunks(chunk)%field%mass_flux_x(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
                                              chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
         IF(right_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the right of the current image
-          chunks(right_neighbour)[right_neighbour]%field%mass_flux_x(                                              &
-                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                 &
-                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =      &
+          chunks(chunk)[right_neighbour]%field%mass_flux_x(                                              &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_min-1,                 &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =      &
              chunks(chunk)%field%mass_flux_x(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
                                              chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
@@ -926,17 +933,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(bottom_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(bottom_neighbour)[bottom_neighbour]%field%mass_flux_x(                                             &
-                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,       &
-                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =    &
+          chunks(chunk)[bottom_neighbour]%field%mass_flux_x(                                             &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,       &
+                  chunks(chunk)%field%y_max+yinc+1:chunks(chunk)%field%y_max+yinc+depth) =    &
              chunks(chunk)%field%mass_flux_x(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
                                              chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
         ENDIF
         IF(top_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(top_neighbour)[top_neighbour]%field%mass_flux_x(                                                  &
-                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,            &
-                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                   &
+          chunks(chunk)[top_neighbour]%field%mass_flux_x(                                                  &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,            &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_min-1) =                   &
              chunks(chunk)%field%mass_flux_x(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth, &
                                              chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
         ENDIF
@@ -949,17 +956,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(left_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the left of the current image
-          chunks(left_neighbour)[left_neighbour]%field%mass_flux_y(                                                 &
-                  chunks(left_neighbour)%field%x_max+xinc+1:chunks(left_neighbour)%field%x_max+xinc+depth,          &
-                  chunks(left_neighbour)%field%y_min-depth:chunks(left_neighbour)%field%y_max+yinc+depth) =         &
+          chunks(chunk)[left_neighbour]%field%mass_flux_y(                                                 &
+                  chunks(chunk)%field%x_max+xinc+1:chunks(chunk)%field%x_max+xinc+depth,          &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =         &
              chunks(chunk)%field%mass_flux_y(chunks(chunk)%field%x_min+xinc:chunks(chunk)%field%x_min+xinc-1+depth, &
                                              chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
         IF(right_neighbour.NE.external_face) THEN
           !caf: one sided put to the image on the right of the current image
-          chunks(right_neighbour)[right_neighbour]%field%mass_flux_y(                                              &
-                  chunks(right_neighbour)%field%x_min-depth:chunks(right_neighbour)%field%x_min-1,                 &
-                  chunks(right_neighbour)%field%y_min-depth:chunks(right_neighbour)%field%y_max+yinc+depth) =      &
+          chunks(chunk)[right_neighbour]%field%mass_flux_y(                                              &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_min-1,                 &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth) =      &
              chunks(chunk)%field%mass_flux_y(chunks(chunk)%field%x_max+1-depth:chunks(chunk)%field%x_max,          &
                                              chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_max+yinc+depth)
         ENDIF
@@ -973,17 +980,17 @@ SUBROUTINE clover_exchange(fields,depth)
 
         IF(bottom_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(bottom_neighbour)[bottom_neighbour]%field%mass_flux_y(                                             &
-                  chunks(bottom_neighbour)%field%x_min-depth:chunks(bottom_neighbour)%field%x_max+xinc+depth,       &
-                  chunks(bottom_neighbour)%field%y_max+yinc+1:chunks(bottom_neighbour)%field%y_max+yinc+depth) =    &
+          chunks(chunk)[bottom_neighbour]%field%mass_flux_y(                                             &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,       &
+                  chunks(chunk)%field%y_max+yinc+1:chunks(chunk)%field%y_max+yinc+depth) =    &
              chunks(chunk)%field%mass_flux_y(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
                                              chunks(chunk)%field%y_min+yinc:chunks(chunk)%field%y_min+yinc-1+depth)
         ENDIF
         IF(top_neighbour.NE.external_face) THEN
           !caf: one sided put to the image under the current image
-          chunks(top_neighbour)[top_neighbour]%field%mass_flux_y(                                                   &
-                  chunks(top_neighbour)%field%x_min-depth:chunks(top_neighbour)%field%x_max+xinc+depth,             &
-                  chunks(top_neighbour)%field%y_min-depth:chunks(top_neighbour)%field%y_min-1) =                    &
+          chunks(chunk)[top_neighbour]%field%mass_flux_y(                                                   &
+                  chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,             &
+                  chunks(chunk)%field%y_min-depth:chunks(chunk)%field%y_min-1) =                    &
              chunks(chunk)%field%mass_flux_y(chunks(chunk)%field%x_min-depth:chunks(chunk)%field%x_max+xinc+depth,  &
                                              chunks(chunk)%field%y_max+1-depth:chunks(chunk)%field%y_max)
         ENDIF
@@ -1084,3 +1091,277 @@ END SUBROUTINE clover_check_error
 
 
 END MODULE clover_module
+!=======
+!  IMPLICIT NONE
+!
+!  INTEGER      :: fields(:),depth,location_of_tasks_chunk
+!
+!  ! Assuming 1 patch per task, this will be changed
+!  ! Also, not packing all fields for each communication, doing one at a time
+!
+!    location_of_tasks_chunk = 1
+!
+!  IF(fields(FIELD_DENSITY0).EQ.1) THEN
+!    CALL clover_exchange_message(location_of_tasks_chunk,                                               &
+!                                 chunks(location_of_tasks_chunk)%field%density0,      &
+!                                 chunks(location_of_tasks_chunk)%left_snd_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%left_rcv_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%right_snd_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%right_rcv_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%bottom_snd_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%bottom_rcv_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%top_snd_buffer,                       &
+!                                 chunks(location_of_tasks_chunk)%top_rcv_buffer,                       &
+!                                 depth,CELL_DATA)
+!  ENDIF
+!
+!  IF(fields(FIELD_DENSITY1).EQ.1) THEN
+!    CALL clover_exchange_message(location_of_tasks_chunk,                                               &
+!                                 chunks(location_of_tasks_chunk)%field%density1,      &
+!                                 chunks(location_of_tasks_chunk)%left_snd_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%left_rcv_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%right_snd_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%right_rcv_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%bottom_snd_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%bottom_rcv_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%top_snd_buffer,                       &
+!                                 chunks(location_of_tasks_chunk)%top_rcv_buffer,                       &
+!                                 depth,CELL_DATA)
+!  ENDIF
+!
+!  IF(fields(FIELD_ENERGY0).EQ.1) THEN
+!    CALL clover_exchange_message(location_of_tasks_chunk,                                               &
+!                                 chunks(location_of_tasks_chunk)%field%energy0,       &
+!                                 chunks(location_of_tasks_chunk)%left_snd_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%left_rcv_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%right_snd_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%right_rcv_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%bottom_snd_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%bottom_rcv_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%top_snd_buffer,                       &
+!                                 chunks(location_of_tasks_chunk)%top_rcv_buffer,                       &
+!                                 depth,CELL_DATA)
+!  ENDIF
+!
+!  IF(fields(FIELD_ENERGY1).EQ.1) THEN
+!    CALL clover_exchange_message(location_of_tasks_chunk,                                               &
+!                                 chunks(location_of_tasks_chunk)%field%energy1,       &
+!                                 chunks(location_of_tasks_chunk)%left_snd_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%left_rcv_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%right_snd_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%right_rcv_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%bottom_snd_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%bottom_rcv_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%top_snd_buffer,                       &
+!                                 chunks(location_of_tasks_chunk)%top_rcv_buffer,                       &
+!                                 depth,CELL_DATA)
+!  ENDIF
+!
+!  IF(fields(FIELD_PRESSURE).EQ.1) THEN
+!    CALL clover_exchange_message(location_of_tasks_chunk,                                               &
+!                                 chunks(location_of_tasks_chunk)%field%pressure,      &
+!                                 chunks(location_of_tasks_chunk)%left_snd_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%left_rcv_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%right_snd_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%right_rcv_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%bottom_snd_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%bottom_rcv_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%top_snd_buffer,                       &
+!                                 chunks(location_of_tasks_chunk)%top_rcv_buffer,                       &
+!                                 depth,CELL_DATA)
+!  ENDIF
+!
+!  IF(fields(FIELD_VISCOSITY).EQ.1) THEN
+!    CALL clover_exchange_message(location_of_tasks_chunk,                                               &
+!                                 chunks(location_of_tasks_chunk)%field%viscosity,     &
+!                                 chunks(location_of_tasks_chunk)%left_snd_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%left_rcv_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%right_snd_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%right_rcv_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%bottom_snd_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%bottom_rcv_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%top_snd_buffer,                       &
+!                                 chunks(location_of_tasks_chunk)%top_rcv_buffer,                       &
+!                                 depth,CELL_DATA)
+!  ENDIF
+!
+!  IF(fields(FIELD_SOUNDSPEED).EQ.1) THEN
+!    CALL clover_exchange_message(location_of_tasks_chunk,                                               &
+!                                 chunks(location_of_tasks_chunk)%field%soundspeed,    &
+!                                 chunks(location_of_tasks_chunk)%left_snd_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%left_rcv_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%right_snd_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%right_rcv_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%bottom_snd_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%bottom_rcv_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%top_snd_buffer,                       &
+!                                 chunks(location_of_tasks_chunk)%top_rcv_buffer,                       &
+!                                 depth,CELL_DATA)
+!  ENDIF
+!
+!  IF(fields(FIELD_XVEL0).EQ.1) THEN
+!    CALL clover_exchange_message(location_of_tasks_chunk,                                               &
+!                                 chunks(location_of_tasks_chunk)%field%xvel0,         &
+!                                 chunks(location_of_tasks_chunk)%left_snd_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%left_rcv_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%right_snd_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%right_rcv_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%bottom_snd_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%bottom_rcv_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%top_snd_buffer,                       &
+!                                 chunks(location_of_tasks_chunk)%top_rcv_buffer,                       &
+!                                 depth,VERTEX_DATA)
+!  ENDIF
+!
+!  IF(fields(FIELD_XVEL1).EQ.1) THEN
+!    CALL clover_exchange_message(location_of_tasks_chunk,                                               &
+!                                 chunks(location_of_tasks_chunk)%field%xvel1,         &
+!                                 chunks(location_of_tasks_chunk)%left_snd_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%left_rcv_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%right_snd_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%right_rcv_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%bottom_snd_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%bottom_rcv_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%top_snd_buffer,                       &
+!                                 chunks(location_of_tasks_chunk)%top_rcv_buffer,                       &
+!                                 depth,VERTEX_DATA)
+!  ENDIF
+!
+!  IF(fields(FIELD_YVEL0).EQ.1) THEN
+!    CALL clover_exchange_message(location_of_tasks_chunk,                                               &
+!                                 chunks(location_of_tasks_chunk)%field%yvel0,         &
+!                                 chunks(location_of_tasks_chunk)%left_snd_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%left_rcv_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%right_snd_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%right_rcv_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%bottom_snd_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%bottom_rcv_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%top_snd_buffer,                       &
+!                                 chunks(location_of_tasks_chunk)%top_rcv_buffer,                       &
+!                                 depth,VERTEX_DATA)
+!  ENDIF
+!
+!  IF(fields(FIELD_YVEL1).EQ.1) THEN
+!    CALL clover_exchange_message(location_of_tasks_chunk,                                               &
+!                                 chunks(location_of_tasks_chunk)%field%yvel1,         &
+!                                 chunks(location_of_tasks_chunk)%left_snd_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%left_rcv_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%right_snd_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%right_rcv_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%bottom_snd_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%bottom_rcv_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%top_snd_buffer,                       &
+!                                 chunks(location_of_tasks_chunk)%top_rcv_buffer,                       &
+!                                 depth,VERTEX_DATA)
+!  ENDIF
+!
+!  IF(fields(FIELD_VOL_FLUX_X).EQ.1) THEN
+!    CALL clover_exchange_message(location_of_tasks_chunk,                                               &
+!                                 chunks(location_of_tasks_chunk)%field%vol_flux_x,    &
+!                                 chunks(location_of_tasks_chunk)%left_snd_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%left_rcv_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%right_snd_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%right_rcv_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%bottom_snd_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%bottom_rcv_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%top_snd_buffer,                       &
+!                                 chunks(location_of_tasks_chunk)%top_rcv_buffer,                       &
+!                                 depth,X_FACE_DATA)
+!  ENDIF
+!
+!  IF(fields(FIELD_VOL_FLUX_Y).EQ.1) THEN
+!    CALL clover_exchange_message(location_of_tasks_chunk,                                               &
+!                                 chunks(location_of_tasks_chunk)%field%vol_flux_y,    &
+!                                 chunks(location_of_tasks_chunk)%left_snd_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%left_rcv_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%right_snd_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%right_rcv_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%bottom_snd_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%bottom_rcv_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%top_snd_buffer,                       &
+!                                 chunks(location_of_tasks_chunk)%top_rcv_buffer,                       &
+!                                 depth,Y_FACE_DATA)
+!  ENDIF
+!
+!  IF(fields(FIELD_MASS_FLUX_X).EQ.1) THEN
+!    CALL clover_exchange_message(location_of_tasks_chunk,                                               &
+!                                 chunks(location_of_tasks_chunk)%field%mass_flux_x,   &
+!                                 chunks(location_of_tasks_chunk)%left_snd_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%left_rcv_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%right_snd_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%right_rcv_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%bottom_snd_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%bottom_rcv_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%top_snd_buffer,                       &
+!                                 chunks(location_of_tasks_chunk)%top_rcv_buffer,                       &
+!                                 depth,X_FACE_DATA)
+!  ENDIF
+!
+!  IF(fields(FIELD_MASS_FLUX_Y).EQ.1) THEN
+!    CALL clover_exchange_message(location_of_tasks_chunk,                                               &
+!                                 chunks(location_of_tasks_chunk)%field%mass_flux_y,   &
+!                                 chunks(location_of_tasks_chunk)%left_snd_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%left_rcv_buffer,                      &
+!                                 chunks(location_of_tasks_chunk)%right_snd_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%right_rcv_buffer,                     &
+!                                 chunks(location_of_tasks_chunk)%bottom_snd_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%bottom_rcv_buffer,                    &
+!                                 chunks(location_of_tasks_chunk)%top_snd_buffer,                       &
+!                                 chunks(location_of_tasks_chunk)%top_rcv_buffer,                       &
+!                                 depth,Y_FACE_DATA)
+!  ENDIF
+!>>>>>>> 05155921477081faa03dc409886647d4ecacdc34
+!=======
+!    ! Send/receive the data
+!    IF(chunks(chunk)%chunk_neighbours(chunk_left).NE.external_face) THEN
+!      tag=4*(chunk)+1 ! 4 because we have 4 faces, 1 because it is leaving the left face
+!      receiver=chunks(chunk)%chunk_neighbours(chunk_left)-1
+!      CALL MPI_ISEND(left_snd_buffer,size,MPI_DOUBLE_PRECISION,receiver,tag &
+!                    ,MPI_COMM_WORLD,request(message_count+1),err)
+!
+!      tag=4*(chunk)+2 ! 4 because we have 4 faces, 1 because it is coming from the right face of the left neighbour
+!      sender=chunks(chunk)%chunk_neighbours(chunk_left)-1
+!      CALL MPI_IRECV(left_rcv_buffer,size,MPI_DOUBLE_PRECISION,sender,tag &
+!                    ,MPI_COMM_WORLD,request(message_count+2),err)
+!      message_count=message_count+2
+!    ENDIF
+!
+!    IF(chunks(chunk)%chunk_neighbours(chunk_right).NE.external_face) THEN
+!      tag=4*chunk+2 ! 4 because we have 4 faces, 2 because it is leaving the right face
+!      receiver=chunks(chunk)%chunk_neighbours(chunk_right)-1
+!      CALL MPI_ISEND(right_snd_buffer,size,MPI_DOUBLE_PRECISION,receiver,tag &
+!                    ,MPI_COMM_WORLD,request(message_count+1),err)
+!
+!      tag=4*(chunk)+1 ! 4 because we have 4 faces, 1 because it is coming from the left face of the right neighbour
+!      sender=chunks(chunk)%chunk_neighbours(chunk_right)-1
+!      CALL MPI_IRECV(right_rcv_buffer,size,MPI_DOUBLE_PRECISION,sender,tag, &
+!                     MPI_COMM_WORLD,request(message_count+2),err)
+!      message_count=message_count+2
+!>>>>>>> 05155921477081faa03dc409886647d4ecacdc34
+!=======
+!    ! Send/receive the data
+!    IF(chunks(chunk)%chunk_neighbours(chunk_bottom).NE.external_face) THEN
+!      tag=4*(chunk)+3 ! 4 because we have 4 faces, 3 because it is leaving the bottom face
+!      receiver=chunks(chunk)%chunk_neighbours(chunk_bottom)-1
+!      CALL MPI_ISEND(bottom_snd_buffer,size,MPI_DOUBLE_PRECISION,receiver,tag &
+!                    ,MPI_COMM_WORLD,request(message_count+1),err)
+!
+!      tag=4*(chunk)+4 ! 4 because we have 4 faces, 1 because it is coming from the top face of the bottom neighbour
+!      sender=chunks(chunk)%chunk_neighbours(chunk_bottom)-1
+!      CALL MPI_IRECV(bottom_rcv_buffer,size,MPI_DOUBLE_PRECISION,sender,tag &
+!                    ,MPI_COMM_WORLD,request(message_count+2),err)
+!      message_count=message_count+2
+!    ENDIF
+!
+!    IF(chunks(chunk)%chunk_neighbours(chunk_top).NE.external_face) THEN
+!      tag=4*(chunk)+4 ! 4 because we have 4 faces, 4 because it is leaving the top face
+!      receiver=chunks(chunk)%chunk_neighbours(chunk_top)-1
+!      CALL MPI_ISEND(top_snd_buffer,size,MPI_DOUBLE_PRECISION,receiver,tag &
+!                    ,MPI_COMM_WORLD,request(message_count+1),err)
+!
+!      tag=4*(chunk)+3 ! 4 because we have 4 faces, 4 because it is coming from the left face of the top neighbour
+!      sender=chunks(chunk)%chunk_neighbours(chunk_top)-1
+!      CALL MPI_IRECV(top_rcv_buffer,size,MPI_DOUBLE_PRECISION,sender,tag, &
+!                     MPI_COMM_WORLD,request(message_count+2),err)
+!      message_count=message_count+2
+!>>>>>>> 05155921477081faa03dc409886647d4ecacdc34
