@@ -193,7 +193,7 @@ SUBROUTINE clover_decompose(x_cells,y_cells,left,right,bottom,top)
                 IF (chunks(1)%chunk_neighbours(chunk_bottom).NE.external_face) THEN
                    numNeighbours = numNeighbours +1
                 ENDIF
-                ALLOCATE(chunks(chunk)%imageNeighbours(numNeighbours))
+                ALLOCATE(chunks(1)%imageNeighbours(numNeighbours))
 
                 !caf:may need to update this when multiple chunks per image so that the image is recorded correctly 
                 IF (numNeighbours > 0) THEN
@@ -234,35 +234,6 @@ SUBROUTINE clover_decompose(x_cells,y_cells,left,right,bottom,top)
   ENDIF
 
 END SUBROUTINE clover_decompose
-
-SUBROUTINE clover_allocate_buffers(chunk)
-
-  IMPLICIT NONE
-
-  INTEGER      :: chunk
-  
-  ! Unallocated buffers for external boundaries caused issues on some systems so they are now
-  !  all allocated
-  IF(parallel%task.EQ.chunks(chunk)%task)THEN
-    !IF(chunks(chunk)%chunk_neighbours(chunk_left).NE.external_face) THEN
-      ALLOCATE(chunks(chunk)%left_snd_buffer(2*(chunks(chunk)%field%y_max+5)))
-      ALLOCATE(chunks(chunk)%left_rcv_buffer(2*(chunks(chunk)%field%y_max+5)))
-    !ENDIF
-    !IF(chunks(chunk)%chunk_neighbours(chunk_right).NE.external_face) THEN
-      ALLOCATE(chunks(chunk)%right_snd_buffer(2*(chunks(chunk)%field%y_max+5)))
-      ALLOCATE(chunks(chunk)%right_rcv_buffer(2*(chunks(chunk)%field%y_max+5)))
-    !ENDIF
-    !IF(chunks(chunk)%chunk_neighbours(chunk_bottom).NE.external_face) THEN
-      ALLOCATE(chunks(chunk)%bottom_snd_buffer(2*(chunks(chunk)%field%x_max+5)))
-      ALLOCATE(chunks(chunk)%bottom_rcv_buffer(2*(chunks(chunk)%field%x_max+5)))
-    !ENDIF
-    !IF(chunks(chunk)%chunk_neighbours(chunk_top).NE.external_face) THEN
-      ALLOCATE(chunks(chunk)%top_snd_buffer(2*(chunks(chunk)%field%x_max+5)))
-      ALLOCATE(chunks(chunk)%top_rcv_buffer(2*(chunks(chunk)%field%x_max+5)))
-    !ENDIF
-  ENDIF
-
-END SUBROUTINE clover_allocate_buffers
 
 SUBROUTINE clover_exchange(fields,depth)
 

@@ -95,11 +95,6 @@ SUBROUTINE start
 
   CALL clover_barrier
 
-  DO c=1,chunks_per_task
-    IF(chunks(c)%task.EQ.parallel%task)THEN
-      CALL clover_allocate_buffers(c)
-    ENDIF
-  ENDDO
 
   DO c=1,chunks_per_task
     IF(chunks(c)%task.EQ.parallel%task)THEN

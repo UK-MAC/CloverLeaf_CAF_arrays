@@ -174,8 +174,8 @@ MODULE definitions_module
      !  one send and one receive per face, rather than per field.
      ! If chunks are overloaded, i.e. more chunks than tasks, might need to pack for a task to task comm 
      !  rather than a chunk to chunk comm. See how performance is at high core counts before deciding
-     REAL(KIND=8),ALLOCATABLE:: left_rcv_buffer(:),right_rcv_buffer(:),bottom_rcv_buffer(:),top_rcv_buffer(:)
-     REAL(KIND=8),ALLOCATABLE:: left_snd_buffer(:),right_snd_buffer(:),bottom_snd_buffer(:),top_snd_buffer(:)
+     !REAL(KIND=8),ALLOCATABLE:: left_rcv_buffer(:),right_rcv_buffer(:),bottom_rcv_buffer(:),top_rcv_buffer(:)
+     !REAL(KIND=8),ALLOCATABLE:: left_snd_buffer(:),right_snd_buffer(:),bottom_snd_buffer(:),top_snd_buffer(:)
 #ifdef LOCAL_SYNC
      INTEGER, ALLOCATABLE:: imageNeighbours(:)
 #endif
