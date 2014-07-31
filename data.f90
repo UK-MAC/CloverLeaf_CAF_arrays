@@ -39,6 +39,10 @@ MODULE data_module
                              ,CHUNK_RIGHT  =2    &
                              ,CHUNK_BOTTOM =3    &
                              ,CHUNK_TOP    =4    &
+                             ,CHUNK_LEFT_TOP    =5    &
+                             ,CHUNK_LEFT_BOTTOM =6    &
+                             ,CHUNK_RIGHT_TOP   =7    &
+                             ,CHUNK_RIGHT_BOTTOM=8    &
                              ,EXTERNAL_FACE=-1
 
    INTEGER,         PARAMETER :: FIELD_DENSITY0   = 1         &

@@ -168,7 +168,7 @@ MODULE definitions_module
 
      INTEGER         :: task   !caf image minus 1
 
-     INTEGER         :: chunk_neighbours(4) ! Chunks, not tasks, so we can overload in the future
+     INTEGER         :: chunk_neighbours(8) ! Chunks, not tasks, so we can overload in the future
 
      ! Idealy, create an array to hold the buffers for each field so a commuincation only needs
      !  one send and one receive per face, rather than per field.

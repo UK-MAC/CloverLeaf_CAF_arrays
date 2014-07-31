@@ -174,10 +174,31 @@ SUBROUTINE clover_decompose(x_cells,y_cells,left,right,bottom,top)
                 chunks(1)%chunk_neighbours(chunk_bottom)=chunk_x*(cy-2)+cx
                 chunks(1)%chunk_neighbours(chunk_top)=chunk_x*(cy)+cx
 
-                IF(cx.EQ.1)       chunks(1)%chunk_neighbours(chunk_left)=external_face
-                IF(cx.EQ.chunk_x) chunks(1)%chunk_neighbours(chunk_right)=external_face
-                IF(cy.EQ.1)       chunks(1)%chunk_neighbours(chunk_bottom)=external_face
-                IF(cy.EQ.chunk_y) chunks(1)%chunk_neighbours(chunk_top)=external_face
+                chunks(1)%chunk_neighbours(CHUNK_LEFT_TOP) = chunk_x*cy+cx-1
+                chunks(1)%chunk_neighbours(CHUNK_LEFT_BOTTOM) = chunk_x*(cy-2)+cx-1
+                chunks(1)%chunk_neighbours(CHUNK_RIGHT_TOP) = chunk_x*cy+cx+1
+                chunks(1)%chunk_neighbours(CHUNK_RIGHT_BOTTOM) = chunk_x*(cy-2)+cx+1
+
+                IF(cx.EQ.1) THEN
+                  chunks(1)%chunk_neighbours(chunk_left)=external_face
+                  chunks(1)%chunk_neighbours(CHUNK_LEFT_TOP)=external_face
+                  chunks(1)%chunk_neighbours(CHUNK_LEFT_BOTTOM)=external_face
+                ENDIF
+                IF(cx.EQ.chunk_x) THEN
+                  chunks(1)%chunk_neighbours(chunk_right)=external_face
+                  chunks(1)%chunk_neighbours(CHUNK_RIGHT_TOP)=external_face
+                  chunks(1)%chunk_neighbours(CHUNK_RIGHT_BOTTOM)=external_face
+                ENDIF
+                IF(cy.EQ.1) THEN
+                 chunks(1)%chunk_neighbours(chunk_bottom)=external_face
+                  chunks(1)%chunk_neighbours(CHUNK_LEFT_BOTTOM)=external_face
+                  chunks(1)%chunk_neighbours(CHUNK_RIGHT_BOTTOM)=external_face
+                ENDIF
+                IF(cy.EQ.chunk_y) THEN
+                  chunks(1)%chunk_neighbours(chunk_top)=external_face
+                  chunks(1)%chunk_neighbours(CHUNK_LEFT_TOP)=external_face
+                  chunks(1)%chunk_neighbours(CHUNK_RIGHT_TOP)=external_face
+                ENDIF
 
 #ifdef LOCAL_SYNC
                 numNeighbours=0
@@ -191,6 +212,18 @@ SUBROUTINE clover_decompose(x_cells,y_cells,left,right,bottom,top)
                    numNeighbours = numNeighbours +1
                 ENDIF
                 IF (chunks(1)%chunk_neighbours(chunk_bottom).NE.external_face) THEN
+                   numNeighbours = numNeighbours +1
+                ENDIF
+                IF (chunks(1)%chunk_neighbours(chunk_left_top).NE.external_face) THEN
+                    numNeighbours = numNeighbours +1
+                ENDIF
+                IF (chunks(1)%chunk_neighbours(chunk_right_top).NE.external_face) THEN
+                   numNeighbours = numNeighbours +1
+                ENDIF
+                IF (chunks(1)%chunk_neighbours(chunk_right_bottom).NE.external_face) THEN
+                   numNeighbours = numNeighbours +1
+                ENDIF
+                IF (chunks(1)%chunk_neighbours(chunk_left_bottom).NE.external_face) THEN
                    numNeighbours = numNeighbours +1
                 ENDIF
                 ALLOCATE(chunks(1)%imageNeighbours(numNeighbours))
@@ -212,6 +245,22 @@ SUBROUTINE clover_decompose(x_cells,y_cells,left,right,bottom,top)
                    ENDIF
                    IF (chunks(1)%chunk_neighbours(chunk_bottom).NE.external_face) THEN
                       chunks(1)%imageNeighbours(n) = chunks(1)%chunk_neighbours(chunk_bottom)
+                      n=n+1
+                   ENDIF
+                   IF (chunks(1)%chunk_neighbours(chunk_left_top).NE.external_face) THEN
+                      chunks(1)%imageNeighbours(n) = chunks(1)%chunk_neighbours(chunk_left_top)
+                      n=n+1
+                   ENDIF
+                   IF (chunks(1)%chunk_neighbours(chunk_right_top).NE.external_face) THEN
+                      chunks(1)%imageNeighbours(n) = chunks(1)%chunk_neighbours(chunk_right_top)
+                      n=n+1
+                   ENDIF
+                   IF (chunks(1)%chunk_neighbours(chunk_right_bottom).NE.external_face) THEN
+                      chunks(1)%imageNeighbours(n) = chunks(1)%chunk_neighbours(chunk_right_bottom)
+                      n=n+1
+                   ENDIF
+                   IF (chunks(1)%chunk_neighbours(chunk_left_bottom).NE.external_face) THEN
+                      chunks(1)%imageNeighbours(n) = chunks(1)%chunk_neighbours(chunk_left_bottom)
                       n=n+1
                    ENDIF
                 ENDIF
