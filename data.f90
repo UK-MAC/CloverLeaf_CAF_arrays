@@ -16,7 +16,7 @@
 ! CloverLeaf. If not, see http://www.gnu.org/licenses/.
 
 !>  @brief Holds parameters definitions
-!>  @author Wayne Gaudin
+!>  @author Wayne Gaudin, Andy Mallinson
 !>  @details Parameters used in the CloverLeaf are defined here.
 
 MODULE data_module
