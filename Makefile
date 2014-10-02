@@ -16,7 +16,7 @@
 # CloverLeaf. If not, see http://www.gnu.org/licenses/.
 
 #  @brief Makefile for CloverLeaf
-#  @author Wayne Gaudin, Andy Herdman
+#  @author Wayne Gaudin, Andy Herdman, Andy Mallinson
 #  @details Agnostic, platform independent makefile for the Clover Leaf benchmark code.
 
 # It is not meant to be clever in anyway, just a simple build out of the box script.
